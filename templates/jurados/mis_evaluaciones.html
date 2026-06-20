@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Mis Evaluaciones - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'dashboard_jurado' %}" class="btn btn-outline">🏠 Volver al Dashboard</a>
+</div>
+
+<div class="page-header">
+    <h1>📝 Mis Evaluaciones</h1>
+</div>
+
+<div class="card">
+    {% include "partials/search_bar.html" with search_name='search' placeholder='Buscar por aprendiz o checklist...' value=search button_text='Buscar' button_class='btn btn-secondary' form_class='' %}
+    <br><br>
+    
+    {% if evaluaciones %}
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Aprendiz</th>
+                    <th>Checklist</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in evaluaciones %}
+                <tr>
+                    <td>{{ e.aprendiz.nombres }} {{ e.aprendiz.apellidos }}</td>
+                    <td>{{ e.checklist.titulo }}</td>
+                    <td>{{ e.fecha|date:"d/m/Y" }}</td>
+                    <td>
+                        {% if e.estado == 'completada' %}
+                            <span class="badge badge-success">Completada</span>
+                        {% elif e.estado == 'pendiente' %}
+                            <span class="badge badge-warning">Pendiente</span>
+                        {% else %}
+                            <span class="badge">{{ e.estado }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="empty-state">No hay evaluaciones registradas.</p>
+    {% endif %}
+</div>
+{% endblock %}

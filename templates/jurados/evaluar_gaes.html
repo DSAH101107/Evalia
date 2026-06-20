@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Evaluar GAES - {{ gaes.nombre }} - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'dashboard_jurado' %}" class="btn btn-outline">🏠 Volver al Dashboard</a>
+</div>
+
+<div class="page-header">
+    <h1>👥 GAES: {{ gaes.nombre }}</h1>
+    <p class="subtitle subtitle-blanco">Selecciona un checklist para evaluar todo el GAES ({{ aprendices|length }} aprendices)</p>
+</div>
+
+<div class="card">
+    <h3>Lista de Aprendices en este GAES</h3>
+    {% if aprendices %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Aprendiz</th>
+                <th>Documento</th>
+                <th>Fase</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for aprendiz in aprendices %}
+            <tr>
+                <td>{{ aprendiz.nombres }} {{ aprendiz.apellidos }}</td>
+                <td>{{ aprendiz.documento }}</td>
+                <td>{{ aprendiz.fase|default:"—" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">No hay aprendices en este GAES.</p>
+    {% endif %}
+</div>
+
+<div class="card" style="margin-top: 1.5rem;">
+    <h3>Seleccionar Checklist y Crear Evaluaciones</h3>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="checklist_id">Checklist:</label>
+            <select name="checklist_id" id="checklist_id" class="form-select" required>
+                <option value="">-- Selecciona un checklist --</option>
+                {% for checklist in checklists %}
+                <option value="{{ checklist.id }}">{{ checklist.titulo }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-actions" style="margin-top: 1rem;">
+            <button type="submit" class="btn btn-primary">✓ Crear Evaluaciones para todo el GAES</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

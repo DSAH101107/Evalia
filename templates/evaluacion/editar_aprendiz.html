@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Aprendiz - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'lista_aprendices' %}" class="btn btn-outline">← Volver a la lista</a>
+</div>
+<h1>Editar Aprendiz</h1>
+
+<div class="card">
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="documento">Documento</label>
+                <input type="text" id="documento" name="documento" value="{{ aprendiz.documento }}" readonly>
+            </div>
+            <div class="form-group">
+                <label for="nombres">Nombres</label>
+                <input type="text" id="nombres" name="nombres" value="{{ aprendiz.nombres }}" required>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="apellidos">Apellidos</label>
+                <input type="text" id="apellidos" name="apellidos" value="{{ aprendiz.apellidos }}" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" value="{{ aprendiz.email }}" required>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="telefono">Teléfono</label>
+                <input type="text" id="telefono" name="telefono" value="{{ aprendiz.telefono }}">
+            </div>
+            <div class="form-group">
+                <label for="programa">Programa</label>
+                <input type="text" id="programa" name="programa" value="{{ aprendiz.programa }}">
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="gaes">GAES</label>
+                <select id="gaes" name="gaes">
+                    <option value="">Sin GAES</option>
+                    {% for gaes in gaes_list %}
+                    <option value="{{ gaes.nombre }}" {% if aprendiz.gaes and aprendiz.gaes.nombre == gaes.nombre %}selected{% endif %}>{{ gaes.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="fase">Fase</label>
+                <select id="fase" name="fase">
+                    <option value="">Sin Fase</option>
+                    {% for fase in fases %}
+                    <option value="{{ fase.numero }}" {% if aprendiz.fase and aprendiz.fase.numero == fase.numero %}selected{% endif %}>Fase {{ fase.numero }}{% if fase.nombre %} - {{ fase.nombre }}{% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="ficha">Ficha</label>
+                <select id="ficha" name="ficha">
+                    <option value="">Sin Ficha</option>
+                    {% for ficha in fichas_list %}
+                    <option value="{{ ficha.numero }}" {% if aprendiz.ficha and aprendiz.ficha.numero == ficha.numero %}selected{% endif %}>{{ ficha.numero }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="trimestre">Trimestre</label>
+                <input type="text" id="trimestre" name="trimestre" value="{{ aprendiz.trimestre }}">
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+            <a href="{% url 'lista_aprendices' %}" class="btn btn-outline">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SENA{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{# ======== NAVBAR ======== #}
+<header class="main-header">
+    <div class="header-inner">
+        <div class="header-brand">
+            <img src="{% static 'images/Logotipo_SENA.png' %}" alt="SENA" class="header-logo">
+            <span class="header-title">SENA</span>
+        </div>
+        {% if user.is_authenticated %}
+        <nav class="header-nav">
+            {% if user.rol == 'administrador' %}
+                <a href="{% url 'dashboard_admin' %}" class="nav-link">Dashboard</a>
+<select onchange="window.location=this.value" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:0.35rem 0.75rem;font-size:0.875rem;font-weight:500;cursor:pointer;margin-right:0.15rem;">
+                        <option value="" disabled selected>Configuración</option>
+                        <option value="{% url 'lista_fases' %}">🔢 Fases</option>
+                        <option value="{% url 'lista_competencias' %}">📚 Competencias</option>
+                        <option value="{% url 'lista_trimestres' %}">📅 Trimestres</option>
+                        <option value="{% url 'lista_fichas' %}">📁 Fichas</option>
+                    </select>
+                <a href="{% url 'lista_usuarios_por_grupos' %}" class="nav-link">Usuarios</a>
+                <a href="{% url 'lista_evaluaciones' %}" class="nav-link">Evaluaciones</a>
+                <a href="{% url 'lista_checklists' %}" class="nav-link">Checklists</a>
+            {% elif user.rol == 'instructor' %}
+                <a href="{% url 'dashboard_instructor' %}" class="nav-link">Dashboard</a>
+                <a href="{% url 'lista_gaes_instructor' %}" class="nav-link">GAES</a>
+                <a href="{% url 'lista_aprendices' %}" class="nav-link">Aprendices</a>
+                <a href="{% url 'lista_evaluaciones' %}" class="nav-link">Evaluaciones</a>
+                <a href="{% url 'lista_checklists' %}" class="nav-link">Checklists</a>
+                <a href="{% url 'lista_resultados' %}" class="nav-link">Resultados</a>
+            {% elif user.rol == 'jurado' %}
+                 <a href="{% url 'dashboard_jurado' %}" class="nav-link">Dashboard</a>
+                 <a href="{% url 'invitaciones_jurado' %}" class="nav-link">Invitaciones</a>
+                <a href="{% url 'lista_evaluaciones' %}" class="nav-link">Evaluaciones</a>
+                <a href="{% url 'lista_checklists' %}" class="nav-link">Checklists</a>
+            {% elif user.rol == 'aprendiz' %}
+                <a href="{% url 'dashboard_aprendiz' %}" class="nav-link">Dashboard</a>
+                <a href="{% url 'lista_resultados' %}" class="nav-link">Resultados</a>
+            {% endif %}
+        </nav>
+        <div class="header-actions">
+            <span class="user-pill">
+                <span class="avatar">{{ request.user.get_full_name|default:request.user.username|slice:":1" }}</span>
+                {{ request.user.get_full_name|default:request.user.username }}
+            </span>
+            <button onclick="doLogout(event)" class="btn btn-danger btn-sm" style="padding:0.3rem 0.75rem; border-radius:8px; cursor:pointer;">Cerrar sesión</button>
+        </div>
+        {% endif %}
+    </div>
+</header>
+
+<script>
+window.doLogout = async function(evt) {
+    evt.preventDefault();
+    const csrf = (document.querySelector('[name=csrfmiddlewaretoken]')?.value)
+        || document.cookie.split('; ').find(function(r) { return r.startsWith('csrftoken='); })?.split('=')[1];
+    try {
+        await fetch('/usuarios/logout/', {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrf || ''},
+            credentials: 'same-origin'
+        });
+    } catch(ignored) { }
+    window.location.replace('/usuarios/login/?logout=1');
+};
+</script>
+
+{# ======== MAIN CONTENT ======== #}
+<div class="page-layout" style="min-height: calc(100vh - 80px); overflow-y: auto;">
+    <!-- Messages container -->
+    <div id="messages-container" style="position: fixed; top: 20px; right: 20px; z-index: 1000; width: 300px;">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+    
+    <div style="margin-top: 80px;">{% block content %}{% endblock %}</div>
+</div>
+
+<script>
+// Auto-dismiss alert messages after 5 seconds
+document.addEventListener('DOMContentLoaded', function() {
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(function(alert) {
+        setTimeout(function() {
+            // Bootstrap alert close functionality
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        }, 5000); // 5 seconds
+    });
+});
+</script>
+
+</body>
+</html>

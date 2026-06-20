@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Importar Aprendices desde PDF - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'home' %}" class="btn btn-outline">🏠 Volver al inicio</a>
+</div>
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h2>📄 Importar Aprendices desde PDF</h2>
+        <a href="{% url 'lista_aprendices' %}" class="btn btn-secondary">← Volver</a>
+    </div>
+
+    <p><strong>Formato esperado del PDF:</strong></p>
+    <ul>
+        <li>Tabla con columnas: nombre, apellido, programa de formación, gaes, ficha, trimestre</li>
+        <li>La <strong>fase</strong> se selecciona desde el desplegable (no es obligatoria en el PDF)</li>
+        <li>Headers exactos o detectables por posición</li>
+    </ul>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="archivo_pdf">Archivo PDF</label>
+            <input type="file" id="archivo_pdf" name="archivo_pdf" accept=".pdf" required>
+        </div>
+        <div class="form-group">
+            <label for="default_fase">Fase por defecto (si el PDF no lo incluye):</label>
+            <select class="form-control" id="default_fase" name="default_fase">
+                <option value="">— Sin fase por defecto —</option>
+                {% for f in fase_choices %}
+                <option value="{{ f }}">{{ f }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Importar PDF</button>
+    </form>
+</div>
+{% endblock %}

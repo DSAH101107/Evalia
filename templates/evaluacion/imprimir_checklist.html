@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Imprimir Checklist - {{ checklist.titulo }} - Sistema SENA{% endblock %}
+
+{% block extra_css %}
+<style>
+@media print {
+    .no-print { display: none !important; }
+    body { font-family: Arial, sans-serif; }
+    .print-item-row {
+        display: flex !important;
+        border: 1px solid #999 !important;
+        border-radius: 4px !important;
+        padding: 8px !important;
+        margin-bottom: 6px !important;
+        page-break-inside: avoid !important;
+        align-items: center !important;
+    }
+    .print-criterio { flex: 1; font-weight: 500; }
+    .print-checkbox { flex: 0 0 80px; text-align: center; }
+    .print-observaciones { flex: 1; margin-left: 10px; font-size: 0.85em; }
+}
+.print-only { display: block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'home' %}" class="btn btn-outline no-print">🏠 Volver al inicio</a>
+    <button type="button" onclick="window.print()" class="btn btn-primary no-print" style="margin-left: 1rem;">🖨️ Imprimir Checklist</button>
+</div>
+
+<div class="page-header">
+    <h1>📋 {{ checklist.titulo }}</h1>
+    <p class="subtitle">{{ checklist.descripcion }}</p>
+    <a href="{% url 'lista_checklists' %}" class="btn btn-outline no-print" style="margin-bottom: 1rem;">← Volver a Lista</a>
+</div>
+
+<div class="card print-only" style="margin-bottom: 1rem;">
+    <h3>Lista de Chequeo - {{ checklist.titulo }}</h3>
+    <p><strong>Fecha:</strong> ______/______/______</p>
+    <p><strong>Jurado:</strong> _______________________</p>
+    <p><strong>Aprendiz:</strong> ____________________</p>
+</div>
+
+<div class="card">
+    <h3 style="margin-bottom: 1rem;">Items ({{ items|length }})</h3>
+    {% for item in items %}
+    <div class="print-item-row" style="border: 1px solid #ddd; border-radius: 4px; padding: 10px; margin-bottom: 8px; background: #fff;">
+        <div class="print-criterio">
+            {{ forloop.counter }}. {{ item.criterio }}
+            {% if item.descripcion %}<br><small style="color: #666;">{{ item.descripcion }}</small>{% endif %}
+        </div>
+        <div class="print-checkbox">
+            ☐ Sí &nbsp;&nbsp; ☐ No
+        </div>
+        <div class="print-observaciones">
+            _________________________<br>
+            <small style="color: #888;">Observaciones</small>
+        </div>
+    </div>
+    {% empty %}
+    <p style="text-align: center; color: var(--gris-texto);">No hay items en esta checklist.</p>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Competencia - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'lista_competencias' %}" class="btn btn-outline">← Volver</a>
+</div>
+<h1>Editar Competencia</h1>
+
+<div class="card">
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="codigo">Código</label>
+                <input type="text" id="codigo" name="codigo" value="{{ comp.codigo }}" required>
+            </div>
+            <div class="form-group">
+                <label for="nombre">Nombre</label>
+                <input type="text" id="nombre" name="nombre" value="{{ comp.nombre }}" required>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="descripcion">Descripción</label>
+            <textarea id="descripcion" name="descripcion" rows="3">{{ comp.descripcion }}</textarea>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="fase">Fase</label>
+                <select id="fase" name="fase">
+                    <option value="">-- Seleccionar Fase --</option>
+                    {% for f in fases %}
+                    <option value="{{ f.id }}" {% if comp.fase_id == f.id %}selected{% endif %}>Fase {{ f.numero }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="ficha">Ficha</label>
+                <select id="ficha" name="ficha">
+                    <option value="">-- Seleccionar Ficha --</option>
+                    {% for f in fichas %}
+                    <option value="{{ f.id }}" {% if comp.ficha_id == f.id %}selected{% endif %}>{{ f.numero }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="trimestre">Trimestre</label>
+                <select id="trimestre" name="trimestre">
+                    <option value="">-- Seleccionar Trimestre --</option>
+                    {% for t in trimestres %}
+                    <option value="{{ t.id }}" {% if comp.trimestre_id == t.id %}selected{% endif %}>{{ t.numero }} - {{ t.anio }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+            <a href="{% url 'lista_competencias' %}" class="btn btn-outline">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Ver Resultado - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'home' %}" class="btn btn-outline">🏠 Volver al inicio</a>
+</div>
+<h1>Resultado de Evaluación</h1>
+
+<div class="card">
+    <h3>Datos del Aprendiz</h3>
+    <p><strong>Nombre:</strong> {{ resultado.aprendiz.nombres }} {{ resultado.aprendiz.apellidos }}</p>
+    <p><strong>Documento:</strong> {{ resultado.aprendiz.documento }}</p>
+    <p><strong>Programa:</strong> {{ resultado.aprendiz.programa }}</p>
+    <p><strong>Ficha:</strong> {{ resultado.aprendiz.ficha }}</p>
+    <p><strong>GAES:</strong> {{ resultado.aprendiz.gaes }}</p>
+</div>
+
+<div class="card">
+    <h3>Resultado</h3>
+    <p><strong>Calificación Final:</strong> {{ resultado.calificacion_final }}</p>
+    <p><strong>Promedio:</strong> {{ resultado.promedio }}</p>
+    <p><strong>Fecha:</strong> {{ resultado.fecha_cierre|date:"d/m/Y" }}</p>
+</div>
+
+<div class="card">
+    <h3>Detalle de Evaluaciones (GAES: {{ resultado.aprendiz.gaes.nombre|default:"Sin GAES" }})</h3>
+    {% if evaluaciones %}
+        {% for eval in evaluaciones %}
+        <div class="evaluation-detail" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
+            <h4>Checklist: {{ eval.checklist.titulo }}</h4>
+            <p><strong>Jurado:</strong> {{ eval.juror.username }}</p>
+            <p><strong>Fecha:</strong> {{ eval.fecha|date:"d/m/Y H:i" }}</p>
+            
+            <table class="data-table" style="margin-top: 0.5rem;">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Criterio</th>
+                        <th>✓ Cumple</th>
+                        <th>Observaciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in eval.ordered_items %}
+                    <tr>
+                        <td>{{ item.item.orden }}</td>
+                        <td>{{ item.item.criterio }}</td>
+                        <td>
+                            {% if item.puntaje > 0 %}
+                                ✅ Sí
+                            {% else %}
+                                ❌ No
+                            {% endif %}
+                        </td>
+                        <td>{{ item.observaciones|default:"-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p>No hay evaluaciones completadas para este aprendiz.</p>
+    {% endif %}
+</div>
+
+<div class="actions">
+    <a href="{% url 'lista_resultados' %}" class="btn btn-outline">Volver</a>
+    <a href="{% url 'generar_reporte_pdf' resultado.id %}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">Descargar PDF</a>
+</div>
+{% endblock %}

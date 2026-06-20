@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Fases - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'dashboard_admin' %}" class="btn btn-outline">🏠 Volver al Panel</a>
+    <a href="{% url 'crear_fase' %}" class="btn btn-primary">➕ Crear Fase</a>
+</div>
+<h1>Fases</h1>
+
+<div class="card">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Número</th>
+                <th>Nombre</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for f in fases %}
+            <tr>
+                <td>{{ f.numero }}</td>
+                <td>{{ f.nombre }}</td>
+                <td>
+                    <a href="{% url 'editar_fase' f.pk %}" class="btn btn-sm btn-outline">✏️ Editar</a>
+                    <form action="{% url 'eliminar_fase' f.pk %}" method="post" style="display:inline;" onsubmit="return confirm('¿Está seguro de eliminar la fase {{ f.numero }}?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-danger">🗑️ Eliminar</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3">No hay fases creadas.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

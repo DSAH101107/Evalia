@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Ficha {{ ficha.numero }} - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'detalle_ficha' ficha.pk %}" class="btn btn-outline">↩️ Volver</a>
+</div>
+<h1>Editar Ficha {{ ficha.numero }}</h1>
+
+<div class="card">
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="numero">Número de Ficha</label>
+                <input type="text" id="numero" name="numero" value="{{ ficha.numero }}" required>
+            </div>
+            <div class="form-group">
+                <label for="programa">Programa</label>
+                <input type="text" id="programa" name="programa" value="{{ ficha.programa|default:'' }}">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="jornada">Jornada</label>
+                <select id="jornada" name="jornada">
+                    <option value="mañana"  {% if ficha.jornada == 'mañana' %}selected{% endif %}>Mañana</option>
+                    <option value="tarde"   {% if ficha.jornada == 'tarde' %}selected{% endif %}>Tarde</option>
+                    <option value="noche"   {% if ficha.jornada == 'noche' %}selected{% endif %}>Noche</option>
+                    <option value="mixto"   {% if ficha.jornada == 'mixto' %}selected{% endif %}>Mixto</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="gaes">GAES</label>
+                <select id="gaes" name="gaes">
+                    <option value="">-- Sin GAES --</option>
+                    {% for g in gaes %}
+                    <option value="{{ g.id }}" {% if ficha.gaes_id == g.id %}selected{% endif %}>
+                        {{ g.nombre }}{% if g.ficha_id %} (Ficha {{ g.ficha.numero }}){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="trimestre">Trimestre</label>
+                <select id="trimestre" name="trimestre">
+                    <option value="">-- Sin Trimestre --</option>
+                    {% for t in trimestres %}
+                    <option value="{{ t.id }}" {% if ficha.trimestre_id == t.id %}selected{% endif %}>
+                        Trimestre {{ t.numero }} - {{ t.anio }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="instructor">Instructor</label>
+                <select id="instructor" name="instructor">
+                    <option value="">-- Sin Instructor --</option>
+                    {% for i in instructores %}
+                    <option value="{{ i.id }}" {% if ficha.instructor_id == i.id %}selected{% endif %}>
+                        {{ i.get_full_name|default:i.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+            <a href="{% url 'detalle_ficha' ficha.pk %}" class="btn btn-outline">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

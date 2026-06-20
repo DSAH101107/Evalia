@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% block title %}Importar Checklists Excel{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">Importar Checklists desde Excel</h1>
+            <p class="text-muted mb-0">Carga un archivo Excel para crear checklist de forma rápida.</p>
+        </div>
+        <a href="{% url 'lista_checklists_evaluacion' %}" class="btn btn-outline-secondary">Cancelar</a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-success text-white">
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-light text-success">Excel</span>
+                <h2 class="h5 mb-0">Importar Checklists</h2>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <div class="alert alert-info mb-4">
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <strong>Columna obligatoria:</strong>
+                        <div><code>item</code>, <code>indicadores</code>, <code>variables</code> o <code>criterio</code></div>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Columnas opcionales:</strong>
+                        <div><code>etapa</code>, <code>puntaje_maximo</code>, <code>observaciones</code></div>
+                    </div>
+                </div>
+            </div>
+
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="titulo" class="form-label">Título del Checklist (opcional)</label>
+                        <input type="text" class="form-control" id="titulo" name="titulo" placeholder="Se usará 'Checklist importado' si se deja vacío">
+                        <div class="form-text">Si se deja vacío, el checklist se llamará <strong>Checklist importado</strong>.</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="archivo_excel" class="form-label">Archivo Excel (.xlsx, .xls)</label>
+                        <input type="file" class="form-control" id="archivo_excel" name="archivo_excel" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" required>
+                        <div id="archivo_excel_nombre" class="form-text">No se ha seleccionado ningún archivo.</div>
+                    </div>
+
+                    <div class="col-12">
+                        <label for="descripcion" class="form-label">Descripción (opcional)</label>
+                        <textarea class="form-control" id="descripcion" name="descripcion" rows="3" placeholder="Descripción del checklist"></textarea>
+                        <div class="form-text">Si se deja vacío, se usará <strong>Importado desde Excel</strong>.</div>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 justify-content-end mt-4">
+                    <button type="submit" class="btn btn-success">Importar Checklist</button>
+                    <a href="{% url 'lista_checklists_evaluacion' %}" class="btn btn-outline-secondary">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form[method="post"][enctype="multipart/form-data"]');
+    const input = document.getElementById('archivo_excel');
+    const fileName = document.getElementById('archivo_excel_nombre');
+
+    if (!input || !fileName) {
+        return;
+    }
+
+    function validateFile(file) {
+        if (!file) {
+            fileName.textContent = 'Debe seleccionar un archivo .xlsx o .xls';
+            fileName.classList.add('text-danger');
+            return false;
+        }
+
+        const validExtensions = ['.xlsx', '.xls'];
+        const name = file.name.toLowerCase();
+        const isValid = validExtensions.some(function(extension) {
+            return name.endsWith(extension);
+        });
+
+        if (!isValid) {
+            fileName.textContent = 'Archivo no válido. Use un archivo .xlsx o .xls';
+            fileName.classList.add('text-danger');
+            return false;
+        }
+
+        fileName.textContent = 'Archivo seleccionado: ' + file.name;
+        fileName.classList.remove('text-danger');
+        return true;
+    }
+
+    input.addEventListener('change', function() {
+        validateFile(input.files && input.files[0]);
+    });
+
+    if (form) {
+        form.addEventListener('submit', function(event) {
+            if (!validateFile(input.files && input.files[0])) {
+                event.preventDefault();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Fichas - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'dashboard_admin' %}" class="btn btn-outline">🏠 Volver al Panel</a>
+    <a href="{% url 'crear_ficha' %}" class="btn btn-primary">➕ Crear Ficha</a>
+</div>
+
+{# ====================== PANEL DE FILTROS ====================== #}
+<div class="card" style="margin-bottom: 1.5rem;">
+    <form method="get" action="" id="filtros-form">
+        <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+            <!-- Búsqueda general -->
+            <div style="flex: 1; min-width: 250px;">
+                <label for="search">Búsqueda general</label>
+                <input type="text" id="search" name="search" placeholder="Buscar por número o programa…" value="{{ search }}" style="width:100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px;">
+            </div>
+
+            <!-- Número -->
+            <div style="flex: 1; min-width: 120px;">
+                <label for="filtro_numero">Número</label>
+                <input type="text" id="filtro_numero" name="filtro_numero" placeholder="Num…" value="{{ filtro_numero }}" style="width:100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px;">
+            </div>
+
+            <!-- Programa -->
+            <div style="flex: 1; min-width: 180px;">
+                <label for="filtro_programa">Programa</label>
+                <input type="text" id="filtro_programa" name="filtro_programa" placeholder="Programa…" value="{{ filtro_programa }}" style="width:100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px;">
+            </div>
+
+            <!-- Jornada -->
+            <div style="flex: 1; min-width: 120px;">
+                <label for="filtro_jornada">Jornada</label>
+                <select id="filtro_jornada" name="filtro_jornada" style="width:100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px;">
+                    <option value="">Todas</option>
+                    <option value="mañana" {% if filtro_jornada == 'mañana' %}selected{% endif %}>Mañana</option>
+                    <option value="tarde" {% if filtro_jornada == 'tarde' %}selected{% endif %}>Tarde</option>
+                    <option value="noche" {% if filtro_jornada == 'noche' %}selected{% endif %}>Noche</option>
+                    <option value="mixto" {% if filtro_jornada == 'mixto' %}selected{% endif %}>Mixto</option>
+                </select>
+            </div>
+
+            <!-- GAES -->
+            <div style="flex: 1; min-width: 140px;">
+                <label for="filtro_gaes">GAES</label>
+                <select id="filtro_gaes" name="filtro_gaes" style="width:100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px;">
+                    <option value="">Todos</option>
+                    {% for g in gaes_list %}
+                    <option value="{{ g.nombre }}" {% if filtro_gaes == g.nombre %}selected{% endif %}>{{ g.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Instructor -->
+            <div style="flex: 1; min-width: 160px;">
+                <label for="filtro_instructor">Instructor</label>
+                <select id="filtro_instructor" name="filtro_instructor" style="width:100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px;">
+                    <option value="">Todos</option>
+                    {% for inst in instructores_list %}
+                    <option value="{{ inst.username }}" {% if filtro_instructor == inst.username %}selected{% endif %}>{{ inst.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Acciones -->
+            <div style="display: flex; gap: 0.5rem;">
+                <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1rem;">🔍 Filtrar</button>
+                <a href="{% url 'lista_fichas' %}" class="btn btn-outline" style="padding: 0.5rem 1rem;">Limpiar</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<h1>Fichas</h1>
+
+<div class="card">
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+    
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Número</th>
+                <th>Programa</th>
+                <th>Jornada</th>
+                <th>GAES</th>
+                <th>Instructor</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for f in fichas %}
+            <tr>
+                <td>{{ f.numero }}</td>
+                <td>{{ f.programa }}</td>
+                <td>{{ f.jornada }}</td>
+                <td>{{ f.gaes|default:"-" }}</td>
+                <td>{{ f.instructor|default:"-" }}</td>
+                <td>
+                    <a href="{% url 'detalle_ficha' f.pk %}">Ver</a>
+                    {% if user.rol == 'administrador' %}
+                    <form action="{% url 'eliminar_ficha' f.pk %}" method="post" style="display:inline; margin-left:0.5rem;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger" style="font-size:0.8rem; padding:0.2rem 0.6rem;" onclick="return confirm('¿Eliminar la ficha {{ f.numero }}?')">Eliminar</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6">No hay fichas creadas.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

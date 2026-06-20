@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% load evaluacion_extras %}
+
+{% block title %}Lista de Evaluaciones - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'home' %}" class="btn btn-outline">🏠 Volver al inicio</a>
+</div>
+
+{# ====================== PANEL DE FILTROS ====================== #}
+<div class="card" style="margin-bottom: 1.5rem;">
+    <form method="get" action="" id="filtros-form">
+        <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+            <!-- Búsqueda general -->
+            <div style="flex: 1; min-width: 250px;">
+                <label for="search">Búsqueda general</label>
+                <input type="text" id="search" name="search" placeholder="Buscar por número o programa…" value="{{ search }}" style="width:100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px;">
+            </div>
+
+            <!-- Número -->
+            <div style="flex: 1; min-width: 120px;">
+                <label for="filtro_numero">Número</label>
+                <input type="text" id="filtro_numero" name="filtro_numero" placeholder="Num…" value="{{ filtro_numero }}" style="width:100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px;">
+            </div>
+
+            <!-- Programa -->
+            <div style="flex: 1; min-width: 180px;">
+                <label for="filtro_programa">Programa</label>
+                <input type="text" id="filtro_programa" name="filtro_programa" placeholder="Programa…" value="{{ filtro_programa }}" style="width:100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px;">
+            </div>
+
+            <!-- Estado -->
+            <div style="flex: 1; min-width: 140px;">
+                <label for="filtro_estado">Estado</label>
+                <select id="filtro_estado" name="filtro_estado" style="width:100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px;">
+                    <option value="">Todos</option>
+                    <option value="completada" {% if filtro_estado == 'completada' %}selected{% endif %}>Completada</option>
+                    <option value="parcial" {% if filtro_estado == 'parcial' %}selected{% endif %}>Parcial</option>
+                    <option value="pendiente" {% if filtro_estado == 'pendiente' %}selected{% endif %}>Pendiente</option>
+                </select>
+            </div>
+
+            <!-- Acciones -->
+            <div style="display: flex; gap: 0.5rem;">
+                <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1rem;">🔍 Filtrar</button>
+                <a href="{% url 'lista_evaluaciones' %}" class="btn btn-outline" style="padding: 0.5rem 1rem;">Limpiar</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<div style="display:flex; justify-content: flex-end; margin-bottom: 1rem;">
+    <h2 style="flex: 1;">📊 Evaluaciones por Ficha</h2>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Ficha</th>
+                <th>Programa</th>
+                <th>Aprendices</th>
+                <th>Fecha</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ficha in fichas %}
+            <tr>
+                <td>{{ ficha.numero }}</td>
+                <td>{{ ficha.programa|default:"—" }}</td>
+                <td>{{ ficha.aprendices.count }}</td>
+                <td>{{ ficha.updated_at|date:"d/m/Y" }}</td>
+                <td>
+                    {% with evaluadas=ficha.aprendices.count|add:"0" %}
+                    {% with total=ficha.aprendices.count %}
+                    {% if ficha.evaluaciones_completadas >= total and total > 0 %}
+                    <span class="badge badge-success">Completada</span>
+                    {% elif ficha.evaluaciones_completadas > 0 %}
+                    <span class="badge badge-warning">Parcial</span>
+                    {% else %}
+                    <span class="badge">Pendiente</span>
+                    {% endif %}
+                    {% endwith %}
+                    {% endwith %}
+                </td>
+                <td>
+                    <a href="{% url 'detalle_ficha_evaluacion' ficha.id %}" class="btn btn-primary btn-sm">Ver</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="empty-state">No hay fichas con evaluaciones registradas</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

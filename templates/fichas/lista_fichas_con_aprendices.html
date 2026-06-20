@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Fichas con Aprendices - Sistema SENA{% endblock %}
+
+{% block content %}
+<h1>📁 Fichas con Aprendices</h1>
+<p class="welcome">Bienvenido, <strong>{{ request.user.get_full_name|default:request.user.username }}</strong></p>
+
+<div class="card">
+    {% if fichas %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Ficha</th>
+                <th>Programa</th>
+                <th>GAES</th>
+                <th>Trimestre</th>
+                <th>Aprendices</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ficha in fichas %}
+            <tr>
+                <td>{{ ficha.numero }}</td>
+                <td>{{ ficha.programa }}</td>
+                <td>{{ ficha.gaes.nombre|default:"—" }}</td>
+<td>{{ ficha.trimestre.numero|default:"—" }}</td>
+                <td>{{ ficha.num_aprendices }}</td>
+                <td>
+                    <a href="{% url 'aprendices_por_ficha' ficha.id %}" class="btn btn-primary btn-sm">Ver</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">No hay fichas registradas.</p>
+    {% endif %}
+</div>
+{% endblock %}

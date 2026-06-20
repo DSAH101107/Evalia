@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}GAES - Panel de Instructor{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'dashboard_instructor' %}" class="btn btn-outline">🏠 Volver al Panel</a>
+</div>
+
+<h1>GAES Asignados</h1>
+
+{% if mis_fichas %}
+{% for ficha in mis_fichas %}
+<div class="card" style="margin-bottom: 1.5rem;">
+    <h2>📁 Ficha {{ ficha.numero }} - GAES</h2>
+    <p><strong>Programa:</strong> {{ ficha.programa }} | <strong>Jornada:</strong> {{ ficha.get_jornada_display }}</p>
+    
+    {% if ficha.grupos.all %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>GAES</th>
+                <th>Descripción</th>
+                <th>Aprendices</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for gaes in ficha.grupos.all %}
+            <tr>
+                <td>{{ gaes.nombre }}</td>
+                <td>{{ gaes.descripcion|default:"-"|truncatechars:50 }}</td>
+                <td>{{ gaes.cant_aprendices|default:0 }}</td>
+                <td>
+                    {% if gaes.cant_aprendices > 0 %}
+                    <span class="badge badge-success">Con aprendices</span>
+                    {% else %}
+                    <span class="badge badge-warning">Vacío</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{% url 'detalle_gaes' gaes.pk %}">Ver</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No hay GAES creados para esta ficha.</p>
+    {% endif %}
+</div>
+{% endfor %}
+{% else %}
+<div class="card">
+    <p>No tienes fichas asignadas.</p>
+</div>
+{% endif %}
+{% endblock %}

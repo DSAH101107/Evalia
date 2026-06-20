@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Compartir Invitación{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'ver_invitacion_ficha' invitacion.id %}" class="btn btn-outline">← Volver a la invitación</a>
+</div>
+
+<h1>Compartir Invitación - Ficha {{ invitacion.ficha.numero }}</h1>
+
+<div class="card">
+    <h2>Jurados Disponibles</h2>
+
+    {% if jurados_disponibles %}
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="jurado_id">Seleccionar jurado para agregar</label>
+            <select id="jurado_id" name="jurado_id" required>
+                <option value="">Seleccionar jurado...</option>
+                {% for jurado in jurados_disponibles %}
+                <option value="{{ jurado.id }}">{{ jurado.username }} - {{ jurado.email }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Agregar como Jurado</button>
+    </form>
+
+    <hr>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Usuario</th>
+                <th>Email</th>
+                <th>Acción</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for jurado in jurados_disponibles %}
+            <tr>
+                <td>{{ jurado.username }}</td>
+                <td>{{ jurado.email }}</td>
+                <td>
+                    <form method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="jurado_id" value="{{ jurado.id }}">
+                        <button type="submit" class="btn btn-sm btn-primary">Agregar</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted">No hay jurados disponibles para agregar.</p>
+    {% endif %}
+</div>
+
+<style>
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.table th, .table td {
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+.table th {
+    background: #f5f5f5;
+}
+</style>
+{% endblock %}

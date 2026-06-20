@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}Iniciar evaluación para {{ aprendiz.nombres }} {{ aprendiz.apellidos }} - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'home' %}" class="btn btn-outline">🏠 Volver al inicio</a>
+</div>
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h1>🚀 Iniciar Evaluación</h1>
+        <a href="{% url 'lista_aprendices' %}" class="btn btn-secondary">👈 Volver a Aprendices</a>
+    </div>
+
+    <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+        <h3 style="margin: 0; color: #495057;">{{ aprendiz.nombres }} {{ aprendiz.apellidos }}</h3>
+        <p style="margin: 0.25rem 0; color: #6c757d;">
+            <strong>Documento:</strong> {{ aprendiz.documento }} |
+            <strong>Ficha:</strong> {{ aprendiz.ficha }} |
+            <strong>Programa:</strong> {{ aprendiz.programa }} |
+            <strong>Fase (proxy):</strong> {{ fase_derivada|default:"" }}
+        </p>
+    </div>
+
+    {% if checklists and checklists|length > 0 %}
+        {# En modo temporal, se inicia con el checklist permitido (el backend selecciona el más reciente) #}
+        <form method="post" style="display:flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+            {% csrf_token %}
+
+            <label style="display:flex; align-items:center; gap:8px; font-size:0.95rem;">
+                <input type="checkbox" name="re_evaluar" value="1">
+                Re-evaluar aunque exista
+            </label>
+
+            <button type="submit" class="btn btn-primary">
+                💾 Iniciar Evaluación
+            </button>
+        </form>
+
+        <div style="margin-top: 1.25rem;">
+            <h4 style="margin-bottom: 0.5rem;">Checklist(s) permitido(s) para esta fase</h4>
+            <ul style="margin:0; padding-left: 1.2rem;">
+                {% for checklist in checklists %}
+                    <li><strong>{{ checklist.titulo }}</strong> — {{ checklist.descripcion|truncatewords:10 }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: 3rem; color: var(--gris-texto);">
+            <div style="font-size: 1.5rem; margin-bottom: 1rem;">📭 No hay checklist disponible para la fase</div>
+            <p>Para evaluar a este aprendiz, primero crea un checklist y asocia sus ítems a la fase correcta.</p>
+            <a href="{% url 'lista_checklists' %}" class="btn btn-primary">📋 Ver Checklists</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+

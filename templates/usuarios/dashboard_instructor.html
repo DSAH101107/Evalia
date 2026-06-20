@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Instructor - Sistema SENA{% endblock %}
+
+{% block content %}
+<div class="page-layout">
+
+<div class="page-header">
+    <h1>📊 Panel de Instructor</h1>
+    <p class="welcome" style="color:rgba(255,255,255,0.85);margin-bottom:0;">
+        Bienvenido, <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+    </p>
+</div>
+
+{# ====================== MÉTRICAS ====================== #}
+<div class="metrics-grid">
+    <div class="metric-card">
+        <div class="metric-value">{{ total_aprendices }}</div>
+        <div class="metric-label">Aprendices registrados</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-value">{{ evaluaciones|length }}</div>
+        <div class="metric-label">Evaluaciones recientes</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-value">{{ resultados|length }}</div>
+        <div class="metric-label">Resultados consolidados</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-value">{{ invitaciones_pendientes|length }}</div>
+        <div class="metric-label">Invitaciones pendientes</div>
+    </div>
+</div>
+
+{# ====================== MIS FICHAS ASIGNADAS ====================== #}
+{% if mis_fichas %}
+<div class="card" style="margin-top:1.5rem;">
+    <h2>📋 Mis Fichas Asignadas</h2>
+    {% for ficha in mis_fichas %}
+    <div style="border: 1px solid var(--bordes); border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; background: var(--blanco);">
+        <h3 style="margin-top:0;">Ficha {{ ficha.numero }} — {{ ficha.programa }}</h3>
+        <p><strong>Trimestre:</strong> {{ ficha.trimestre|default:"Sin asignar" }}</p>
+        <p><strong>Jornada:</strong> {{ ficha.get_jornada_display }}</p>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{# ====================== INVITACIONES RECIBIDAS ====================== #}
+{% if invitaciones_pendientes %}
+<div class="card">
+    <h2>📨 Invitaciones Recibidas</h2>
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Ficha</th>
+                    <th>Fecha/Hora</th>
+                    <th>Mensaje</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inv in invitaciones_pendientes %}
+                <tr>
+                    <td><strong>{{ inv.ficha.numero|default:"-" }}</strong></td>
+                    <td>
+                        {% if inv.fecha_evaluacion %}{{ inv.fecha_evaluacion|date:"d/m/Y" }}{% endif %}
+                        {% if inv.hora_evaluacion %} <small>{{ inv.hora_evaluacion }}</small>{% endif %}
+                    </td>
+                    <td>{{ inv.mensaje|truncatechars:30|default:"-" }}</td>
+                    <td><span class="badge badge-warning">Pendiente</span></td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#detalleModal{{ inv.id }}">
+                            Ver
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% for inv in invitaciones_pendientes %}
+<div class="modal fade" id="detalleModal{{ inv.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Invitación - Ficha {{ inv.ficha.numero|default:"-" }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-borderless mb-0" style="background-color: #fff;">
+                    <tr style="background-color: #fff;">
+                        <td width="150"><strong>Enviada por:</strong></td>
+                        <td>{{ inv.instructor.get_full_name|default:inv.instructor.username }}</td>
+                    </tr>
+                    <tr style="background-color: #fff;">
+                        <td><strong>Programa:</strong></td>
+                        <td>{{ inv.ficha.programa|default:"-" }}</td>
+                    </tr>
+                    <tr style="background-color: #fff;">
+                        <td><strong>Fecha:</strong></td>
+                        <td>{{ inv.fecha_evaluacion|date:"d/m/Y"|default:"-" }}</td>
+                    </tr>
+                    <tr style="background-color: #fff;">
+                        <td><strong>Hora:</strong></td>
+                        <td>{{ inv.hora_evaluacion|default:"-" }}</td>
+                    </tr>
+                    <tr style="background-color: #fff;">
+                        <td><strong>Mensaje:</strong></td>
+                        <td>{{ inv.mensaje|default:"-" }}</td>
+                    </tr>
+                </table>
+                {% if inv.instructores_jurados.exists %}
+                <hr class="my-3">
+                <h6><strong>Jurados asignados:</strong></h6>
+                <table class="table table-sm table-hover mb-0" style="background-color: #fff;">
+                    <tbody style="background-color: #fff;">
+                        {% for jurado in inv.instructores_jurados.all %}
+                        <tr style="background-color: #fff;">
+                            <td>{{ jurado.get_full_name|default:jurado.username }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <form method="post" action="{% url 'aceptar_invitacion' inv.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success">Aceptar invitación</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+
+{# ====================== ACCESOS RÁPIDOS ====================== #}
+<div class="metrics-grid" style="margin-top:1.5rem;">
+    <div class="metric-card">
+        <a href="{% url 'crear_aprendiz' %}" style="text-decoration:none;color:inherit;">
+            <div style="font-size:2rem;">➕</div>
+            <div class="metric-label">Crear Aprendiz</div>
+        </a>
+    </div>
+    <div class="metric-card">
+        <a href="{% url 'enviar_invitacion' %}" style="text-decoration:none;color:inherit;">
+            <div style="font-size:2rem;">📨</div>
+            <div class="metric-label">Enviar Invitaciones</div>
+        </a>
+    </div>
+    <div class="metric-card">
+        <a href="{% url 'importar_excel' %}" style="text-decoration:none;color:inherit;">
+            <div style="font-size:2rem;">📊</div>
+            <div class="metric-label">Importar Excel</div>
+        </a>
+    </div>
+    <div class="metric-card">
+        <a href="{% url 'importar_csv_aprendices' %}" style="text-decoration:none;color:inherit;">
+            <div style="font-size:2rem;">📋</div>
+            <div class="metric-label">Importar CSV</div>
+        </a>
+    </div>
+    <div class="metric-card">
+        <a href="{% url 'lista_evaluaciones' %}" style="text-decoration:none;color:inherit;">
+            <div style="font-size:2rem;">📝</div>
+            <div class="metric-label">Evaluaciones</div>
+        </a>
+    </div>
+</div>
+
+</div>
+{% endblock %}

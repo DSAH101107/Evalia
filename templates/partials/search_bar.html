@@ -1,0 +1,21 @@
+{# ------------------------------------------------------------ #}
+{# Search bar reutilizable (GET)                                #}
+{# Usada en listados con filtros por query string             #}
+{# ------------------------------------------------------------ #}
+<form method="get" class="{{ form_class|default:'search-form' }}">
+  {# Input de búsqueda #}
+  <input
+    type="text"
+    name="{{ search_name|default:'search' }}"
+    placeholder="{{ placeholder }}"
+    value="{{ value|default:'' }}"
+    class="search-input"
+  >
+  {# Botón #}
+  <button type="submit" class="{{ button_class|default:'btn btn-primary' }} search-button">
+    {{ button_text|default:'Buscar' }}
+  </button>
+</form>
+
+
+

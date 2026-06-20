@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Enviar Invitación - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'home' %}" class="btn btn-outline">🏠 Volver al inicio</a>
+</div>
+<h1>Enviar Invitación a Jurado</h1>
+
+<div class="card">
+    <p>Seleccione un instructor para invitarlo como jurado en el proceso de evaluación.</p>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="instructor">Instructor</label>
+            <select id="instructor" name="instructor" required>
+                <option value="">Seleccione un instructor</option>
+                {% for instructor in instructores %}
+                <option value="{{ instructor.id }}">{{ instructor.username }} - {{ instructor.email }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="instructores_jurados">Seleccionar Jurados</label>
+            <select id="instructores_jurados" name="instructores_jurados" multiple style="height: 120px;">
+                {% for instructor in instructores %}
+                <option value="{{ instructor.id }}">{{ instructor.username }} - {{ instructor.email }}</option>
+                {% endfor %}
+            </select>
+            <small style="color: var(--gris-texto);">Mantenga Ctrl para seleccionar múltiples jurados</small>
+        </div>
+        
+        <div class="form-group">
+            <label for="fecha_evaluacion">Fecha de evaluación</label>
+            <input type="date" id="fecha_evaluacion" name="fecha_evaluacion" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="hora_evaluacion">Hora de evaluación</label>
+            <input type="time" id="hora_evaluacion" name="hora_evaluacion" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="mensaje">Mensaje (opcional)</label>
+            <textarea id="mensaje" name="mensaje" rows="4"></textarea>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Enviar Invitación</button>
+            <a href="{% url 'dashboard_admin' %}" class="btn btn-outline">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

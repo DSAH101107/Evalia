@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Panel Aprendiz - Sistema SENA{% endblock %}
+
+{% block content %}
+<div class="page-layout">
+
+<div class="page-header">
+    <h1>Panel de Aprendiz</h1>
+    <p class="welcome" style="color:rgba(255,255,255,0.85);margin-bottom:0;">
+        Bienvenido, <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+    </p>
+</div>
+
+{% if aprendiz %}
+<div class="card" style="margin-bottom:1.5rem;">
+    <div class="card-header" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:0.5rem;">
+        <div style="font-size:2.5rem;line-height:1;">&#x1F464;</div>
+        <div style="flex:1;">
+            <h2 style="margin:0 0 0.25rem;">{{ aprendiz.nombres }} {{ aprendiz.apellidos }}</h2>
+            <p style="margin:0;color:var(--gris-texto);font-size:0.9rem;">
+                Documento: <strong>{{ aprendiz.documento }}</strong>
+                &nbsp;&middot;&nbsp;
+                Email: <a href="mailto:{{ aprendiz.email }}">{{ aprendiz.email }}</a>
+            </p>
+        </div>
+    </div>
+
+    {% if aprendiz.ficha or aprendiz.gaes or aprendiz.fase %}
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:1rem;">
+        {% if aprendiz.gaes %}
+        <div class="metric-card" style="flex:1;min-width:160px;">
+            <div style="font-size:1.6rem;">&#x1F3EB;</div>
+            <div class="metric-label">GAES</div>
+            <div style="font-size:1rem;font-weight:700;color:var(--azul);margin-top:0.2rem;">{{ aprendiz.gaes.nombre }}</div>
+        </div>
+        {% endif %}
+        {% if aprendiz.ficha %}
+        <div class="metric-card" style="flex:1;min-width:160px;">
+            <div style="font-size:1.6rem;">&#x1F4CB;</div>
+            <div class="metric-label">Ficha</div>
+            <div style="font-size:1rem;font-weight:700;color:var(--azul);margin-top:0.2rem;">{{ aprendiz.ficha.numero }}</div>
+        </div>
+        {% endif %}
+        {% if aprendiz.fase %}
+        <div class="metric-card" style="flex:1;min-width:160px;">
+            <div style="font-size:1.6rem;">&#x1F4CC;</div>
+            <div class="metric-label">Fase</div>
+            <div style="font-size:1rem;font-weight:700;color:var(--azul);margin-top:0.2rem;">Fase {{ aprendiz.fase.numero }}</div>
+        </div>
+        {% endif %}
+        {% if aprendiz.programa %}
+        <div class="metric-card" style="flex:1;min-width:160px;">
+            <div style="font-size:1.6rem;">&#x1F393;</div>
+            <div class="metric-label">Programa</div>
+            <div style="font-size:1rem;font-weight:700;color:var(--azul);margin-top:0.2rem;">{{ aprendiz.programa }}</div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if aprendiz.bloqueado %}
+    <div class="alert alert-warning" style="margin-top:1rem;">
+        <strong>&#x26A0;&#xFE0F; Tu cuenta se encuentra bloqueada.</strong> Contacta al administrador.
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="metrics-grid">
+    <div class="metric-card">
+        <div class="metric-value">{{ total_evaluaciones }}</div>
+        <div class="metric-label">Evaluaciones registradas</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-value">{{ evaluaciones_completadas }}</div>
+        <div class="metric-label">Evaluaciones completadas</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-value">{{ resultados|length }}</div>
+        <div class="metric-label">Resultados disponibles</div>
+    </div>
+</div>
+
+<div class="card">
+    <h3 style="margin-top:0;"> Mis Resultados</h3>
+    {% if resultados %}
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Calificacion final</th>
+                    <th>Fecha de cierre</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for resultado in resultados %}
+                <tr>
+                    <td>
+                        <span class="badge">{{ resultado.calificacion_final }}</span>
+                    </td>
+                    <td>{{ resultado.fecha_cierre|date:"d/m/Y H:i" }}</td>
+                    <td>
+                        <a href="{% url 'generar_reporte_pdf' resultado.id %}" class="btn btn-outline btn-sm"
+                            target="_blank" rel="noopener noreferrer">Ver PDF</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="empty-state">Aun no tienes evaluaciones registradas.</p>
+    {% endif %}
+</div>
+
+<div class="metrics-grid">
+    <div class="metric-card">
+        <a href="{% url 'lista_aprendices' %}" style="text-decoration:none;color:inherit;">
+            <div style="font-size:2rem;">&#x1F392;</div>
+            <div class="metric-label">Ver Aprendices</div>
+        </a>
+    </div>
+    <div class="metric-card">
+        <a href="{% url 'lista_resultados' %}" style="text-decoration:none;color:inherit;">
+            <div style="font-size:2rem;">&#x1F4CA;</div>
+            <div class="metric-label">Mis Resultados</div>
+        </a>
+    </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}{% endblock %}

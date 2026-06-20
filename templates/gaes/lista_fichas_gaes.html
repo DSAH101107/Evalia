@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Fichas - GAES - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'dashboard_admin' %}" class="btn btn-outline">🏠 Volver al Panel</a>
+</div>
+<h1>Fichas</h1>
+
+<div class="card">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Número</th>
+                <th>Programa</th>
+                <th>Instructor</th>
+                <th>Trimestre</th>
+                <th>Aprendices</th>
+                <th>GAES</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for f in fichas %}
+            <tr>
+                <td>{{ f.numero }}</td>
+                <td>{{ f.programa|default:"-"|truncatechars:30 }}</td>
+                <td>
+    {% if f.instructor %}
+        {{ f.instructor.get_full_name|default:f.instructor.username }}
+    {% else %}
+        Sin asignar
+    {% endif %}
+</td>
+                <td>{{ f.trimestre|default:"-" }}</td>
+                <td>{{ f.cant_aprendices|default:0 }}</td>
+                <td>{{ f.grupos.count|default:0 }}</td>
+                <td>
+                    <a href="{% url 'detalle_ficha_gaes' f.pk %}">Ver detalle</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7">No hay fichas creadas.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

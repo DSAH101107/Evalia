@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}Lista de Aprendices - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'home' %}" class="btn btn-outline">🏠 Volver al inicio</a>
+</div>
+
+{# ====================== PANEL DE FILTROS ====================== #}
+<div class="card" style="margin-bottom: 1.5rem;">
+    <form method="get" action="" id="filtros-form">
+        <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+
+            <!-- Búsqueda general -->
+            <div style="flex: 1; min-width: 250px;">
+                <label for="search">Búsqueda general</label>
+                <input type="text" id="search" name="search" placeholder="Nombre, documento, email…" value="{{ search }}" style="width:100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px;">
+            </div>
+
+            <!-- Documento -->
+            <div style="flex: 1; min-width: 160px;">
+                <label for="filtro_documento">Documento</label>
+                <input type="text" id="filtro_documento" name="filtro_documento" placeholder="Doc…" value="{{ filtro_documento }}" style="width:100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px;">
+            </div>
+
+            <!-- Nombre -->
+            <div style="flex: 1; min-width: 160px;">
+                <label for="filtro_nombre">Nombre</label>
+                <input type="text" id="filtro_nombre" name="filtro_nombre" placeholder="Nombre…" value="{{ filtro_nombre }}" style="width:100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px;">
+            </div>
+
+            <!-- Email -->
+            <div style="flex: 1; min-width: 200px;">
+                <label for="filtro_email">Email</label>
+                <input type="text" id="filtro_email" name="filtro_email" placeholder="correo@ejemplo.com" value="{{ filtro_email }}" style="width:100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px;">
+            </div>
+
+            <!-- Ficha -->
+            <div style="flex: 1; min-width: 140px;">
+                <label for="filtro_ficha">Ficha</label>
+                <select id="filtro_ficha" name="filtro_ficha" style="width:100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px;">
+                    <option value="">Todas</option>
+                    {% for ficha in fichas_list %}
+                    <option value="{{ ficha.numero }}" {% if filtro_ficha == ficha.numero %}selected{% endif %}>{{ ficha.numero }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- GAES -->
+            <div style="flex: 1; min-width: 160px;">
+                <label for="filtro_gaes">GAES</label>
+                <select id="filtro_gaes" name="filtro_gaes" style="width:100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px;">
+                    <option value="">Todos</option>
+                    {% for gaes in gaes_list %}
+                    <option value="{{ gaes.nombre }}" {% if filtro_gaes == gaes.nombre %}selected{% endif %}>{{ gaes.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Fase -->
+            <div style="flex: 1; min-width: 120px;">
+                <label for="filtro_fase">Fase</label>
+                <select id="filtro_fase" name="filtro_fase" style="width:100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px;">
+                    <option value="">Todas</option>
+                    {% for fase in fases_list %}
+                    <option value="{{ fase.numero }}" {% if filtro_fase == fase.numero|stringformat:"s" %}selected{% endif %}>{{ fase }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Bloqueados -->
+            <div style="min-width: 150px;">
+                <label for="solo_bloqueados">Estado</label>
+                <select id="solo_bloqueados" name="solo_bloqueados" style="width:100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px;">
+                    <option value="">Todos</option>
+                    <option value="1" {% if solo_bloqueados %}selected{% endif %}>Solo bloqueados</option>
+                </select>
+            </div>
+
+            <!-- Acciones -->
+            <div style="display: flex; gap: 0.5rem;">
+                <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1rem;">🔍 Filtrar</button>
+                <a href="{% url 'lista_aprendices' %}" class="btn btn-outline" style="padding: 0.5rem 1rem;">Limpiar</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+{# ====================== TITULAR + ACCIONES ====================== #}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h2>👥 Aprendices</h2>
+            <small style="color: var(--gris-texto);">Total encontrados: <strong>{{ total_aprendices }}</strong></small>
+        </div>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <a href="{% url 'crear_aprendiz' %}" class="btn btn-primary">➕ Nuevo</a>
+            <a href="{% url 'importar_excel' %}" class="btn btn-secondary">📊 Excel</a>
+            <a href="{% url 'importar_csv_aprendices' %}" class="btn btn-secondary">📋 CSV</a>
+            <a href="{% url 'importar_pdf_aprendices' %}" class="btn btn-info">📄 PDF</a>
+        </div>
+    </div>
+
+    {# ====================== TABLA ====================== #}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Documento</th>
+                    <th>Nombre Completo</th>
+                    <th>Email</th>
+                    <th>Programa</th>
+                    <th>Ficha</th>
+                    <th>GAES</th>
+                    <th>Fase</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for aprendiz in aprendices %}
+                {% with ficha_mostrar=aprendiz.ficha|default:aprendiz.gaes.ficha %}
+                <tr>
+                    <td><strong>{{ aprendiz.documento }}</strong></td>
+                    <td>{{ aprendiz.nombres }} {{ aprendiz.apellidos }}</td>
+                    <td>{{ aprendiz.email }}</td>
+                    <td>{{ aprendiz.programa }}</td>
+                    <td><span class="badge" style="background: #4A6FA5; color: white;">{{ ficha_mostrar|default:"Sin ficha" }}</span></td>
+                    <td><span class="badge" style="background: #7C3AED; color: white;">{{ aprendiz.gaes|default:"Sin GAES" }}</span></td>
+                    <td><span class="badge" style="background: #D97706; color: white;">{{ aprendiz.fase|default:"Sin fase" }}</span></td>
+                    <td>
+                        <span class="badge" style="background: {% if aprendiz.bloqueado %}#EF4444{% else %}#10B981{% endif %}; color: white;">
+                            {% if aprendiz.bloqueado %}🚫 Bloqueado{% else %}✅ Activo{% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        {% if user.rol == 'administrador' %}
+                        <a href="{% url 'editar_aprendiz' aprendiz.id %}" class="btn btn-secondary btn-sm" style="padding: 0.3rem 0.6rem;">✏️</a>
+                        <a href="#" onclick="bloquearAprendiz({{ aprendiz.id }})" class="btn btn-danger btn-sm" style="padding: 0.3rem 0.6rem;">
+                            {% if aprendiz.bloqueado %}🔓 Desbloquear{% else %}🚫 Bloquear{% endif %}
+                        </a>
+                        <a href="#" onclick="eliminarAprendiz({{ aprendiz.id }}, '{{ aprendiz.nombres }} {{ aprendiz.apellidos }}')" class="btn btn-danger btn-sm" style="padding: 0.3rem 0.6rem;">🗑️</a>
+                        {% else %}
+                        {% if user.rol == 'jurado' %}
+                        <a href="{% url 'iniciar_evaluacion' aprendiz.id %}" class="btn btn-primary btn-sm">📝 Evaluar</a>
+                        {% else %}
+                        <a href="{% url 'iniciar_evaluacion' aprendiz.id %}" class="btn btn-secondary btn-sm">Evaluar</a>
+                        {% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endwith %}
+                {% empty %}
+                <tr>
+                    <td colspan="9" style="text-align: center; padding: 3rem; color: var(--gris-texto);">
+                        <div style="font-size: 1.2rem; margin-bottom: 1rem;">📭 No hay aprendices registrados</div>
+                        <a href="{% url 'crear_aprendiz' %}" class="btn btn-primary">Crear el primero</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{# ====================== PAGINACIÓN ====================== #}
+{% if total_aprendices > 20 %}
+<div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-top: 1.5rem; flex-wrap: wrap;">
+    {% if aprendices.has_previous %}
+    <a href="{% url 'lista_aprendices' %}?{% for key, val in request.GET.items %}{% if key != 'page' %}{{ key }}={{ val }}&{% endif %}{% endfor %}page=1" class="btn btn-sm btn-outline">« Primera</a>
+    <a href="{% url 'lista_aprendices' %}?{% for key, val in request.GET.items %}{% if key != 'page' %}{{ key }}={{ val }}&{% endif %}{% endfor %}page={{ aprendices.previous_page_number }}" class="btn btn-sm btn-outline">‹ Anterior</a>
+    {% endif %}
+
+    <span style="padding: 0.5rem 1rem; font-weight: 600; color: var(--gris-texto);">
+        Página <strong>{{ aprendices.number }}</strong> / <strong>{{ aprendices.paginator.num_pages }}</strong>
+        &nbsp;(<em>{{ total_aprendices }} registros</em>)
+    </span>
+
+    {% if aprendices.has_next %}
+    <a href="{% url 'lista_aprendices' %}?{% for key, val in request.GET.items %}{% if key != 'page' %}{{ key }}={{ val }}&{% endif %}{% endfor %}page={{ aprendices.next_page_number }}" class="btn btn-sm btn-outline">Siguiente ›</a>
+    <a href="{% url 'lista_aprendices' %}?{% for key, val in request.GET.items %}{% if key != 'page' %}{{ key }}={{ val }}&{% endif %}{% endfor %}page={{ aprendices.paginator.num_pages }}" class="btn btn-sm btn-outline">Última »</a>
+    {% endif %}
+</div>
+{% endif %}
+
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function eliminarAprendiz(id, nombreCompleto) {
+    if (confirm(`¿Eliminar permanentemente al aprendiz "${nombreCompleto}"? Se eliminarán también su usuario asociado y todas sus evaluaciones.`)) {
+        const csrfToken = getCookie('csrftoken');
+        if (!csrfToken) {
+            alert('Error: Token CSRF no encontrado');
+            return;
+        }
+        fetch(`${window.location.origin}/evaluacion/aprendices/eliminar/${id}/`, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'X-CSRFToken': csrfToken,
+            },
+        }).then(response => {
+            if (!response.ok) {
+                return response.json().then(data => { throw new Error(data.message || 'Error del servidor'); });
+            }
+            return response.json();
+        }).then(data => {
+            alert(data.message);
+            window.location.reload();
+        }).catch(error => {
+            alert('Error: ' + error.message);
+        });
+    }
+}
+</script>
+{% endblock %}

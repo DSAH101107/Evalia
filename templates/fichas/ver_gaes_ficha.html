@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}GAES de la Ficha {{ ficha.numero }} - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'lista_fichas_con_aprendices' %}" class="btn btn-outline">🏠 Volver a Fichas</a>
+</div>
+
+<h1>GAES - Ficha {{ ficha.numero }}</h1>
+
+<div class="card">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <th>Aprendices</th>
+                <th>Fichas</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in gaes_list %}
+            <tr>
+                <td><strong>{{ item.gaes.nombre }}</strong></td>
+                <td>{{ item.gaes.descripcion|truncatechars:30|default:"—" }}</td>
+                <td>
+                    <span style="font-weight: bold; color: #2563eb;">{{ item.cant_aprendices }}</span> aprendiz(es)
+                </td>
+                <td>1</td>
+                <td>
+                    <a href="{% url 'detalle_gaes' item.gaes.pk %}" class="btn btn-outline btn-sm">Ver</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" style="color: #6b7280; text-align: center;">No hay GAES con aprendices en esta ficha.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

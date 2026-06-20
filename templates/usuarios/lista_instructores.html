@@ -1,0 +1,56 @@
+
+{% extends "base.html" %}
+
+{% block title %}Instructores - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'home' %}" class="btn btn-outline">🏠 Volver al inicio</a>
+</div>
+<div class="card">
+    {# --- Encabezado del listado --- #}
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h1>Instructores y Jurados</h1>
+        {# Barra de búsqueda reutilizable #}
+{% include "partials/search_bar.html" with search_name='search' placeholder='Buscar por nombre o email...' value=search button_text='Buscar' button_class='btn btn-secondary' form_class='search-form' %}
+    </div>
+    
+    {# --- Tabla de instructores --- #}
+    <div class="table-responsive">
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Email</th>
+                    <th>Rol Actual</th>
+                    <th>Invitaciones Pendientes</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for instructor in instructores %}
+                <tr>
+                    <td>{{ instructor.username }}</td>
+                    <td>{{ instructor.email }}</td>
+                    <td>
+                        <span class="badge {% if instructor.rol == 'jurado' %}badge-jurado{% else %}badge-instructor{% endif %}">
+                            {% if instructor.rol == 'jurado' %}✅ Jurado{% else %}📋 Instructor{% endif %}
+                        </span>
+                    </td>
+                    <td>{{ instructor.invitaciones_recibidas.count }}</td>
+                    <td>
+                        <a href="{% url 'enviar_invitacion_email' instructor.id %}" class="btn btn-secondary btn-sm">Enviar Invitación</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5">No hay instructores registrados</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+

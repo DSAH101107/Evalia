@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Enviar Invitación - Ficha {{ ficha.numero }}{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'detalle_ficha' ficha.id %}" class="btn btn-outline">← Volver a la ficha</a>
+</div>
+
+<h1>Enviar Invitación - Ficha {{ ficha.numero }}</h1>
+
+<div class="card">
+    <p><strong>Instructor encargado:</strong> {{ ficha.instructor.username|default:"Sin asignar" }}</p>
+    <p><strong>Programa:</strong> {{ ficha.programa }}</p>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="checklist_id">Checklist (opcional)</label>
+            <select id="checklist_id" name="checklist_id" class="form-control" style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:8px;">
+                <option value="">-- Seleccionar Checklist --</option>
+                {% if checklists %}
+                {% for checklist in checklists %}
+                <option value="{{ checklist.id }}">{{ checklist.titulo }}</option>
+                {% endfor %}
+                {% else %}
+                <option value="" disabled>No hay checklists disponibles</option>
+                {% endif %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Seleccionar Jurados</label>
+            <button type="button" class="btn btn-outline" onclick="toggleJurados()">+ Agregar Jurados</button>
+            <span id="jurados-count" style="margin-left: 1rem; color: #666;"></span>
+        </div>
+
+        <div id="jurados-section" style="display: none;">
+            <div class="form-group">
+                <label>Instructores disponibles (misma modalidad: {{ ficha.programa }})</label>
+                <div style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+                    {% for jurado in jurados %}
+                    <div style="margin-bottom: 0.5rem; padding: 0.25rem; display: flex; align-items: center;">
+                        <input type="checkbox" id="jurado-{{ jurado.id }}" name="jurados" value="{{ jurado.id }}" onchange="updateCount()" style="margin-right: 0.5rem;">
+                        <label for="jurado-{{ jurado.id }}" style="cursor: pointer; margin: 0;">
+                            {{ jurado.username }} - {{ jurado.email }}
+                        </label>
+                    </div>
+                    {% empty %}
+                    <p style="color: #666;">No hay instructores con la misma modalidad</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="fecha_evaluacion">Fecha de evaluación *</label>
+            <input type="date" id="fecha_evaluacion" name="fecha_evaluacion" required style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:8px;">
+        </div>
+
+        <div class="form-group">
+            <label for="hora_evaluacion">Hora de evaluación</label>
+            <input type="time" id="hora_evaluacion" name="hora_evaluacion" style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:8px;">
+        </div>
+
+        <div class="form-group">
+            <label for="mensaje">Mensaje adicional (opcional)</label>
+            <textarea id="mensaje" name="mensaje" rows="4" placeholder="Información adicional sobre la sustentación..." style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:8px;"></textarea>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Enviar Invitación</button>
+            <a href="{% url 'detalle_ficha' ficha.id %}" class="btn btn-outline">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+<script>
+function toggleJurados() {
+    const section = document.getElementById('jurados-section');
+    if (section.style.display === 'none') {
+        section.style.display = 'block';
+        updateCount();
+    } else {
+        section.style.display = 'none';
+    }
+}
+
+function updateCount() {
+    const checkboxes = document.querySelectorAll('input[name="jurados"]:checked');
+    const count = checkboxes.length;
+    document.getElementById('jurados-count').textContent = count > 0 ? `${count} jurado(s) seleccionado(s)` : '';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    updateCount();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Panel de Jurado - Sistema SENA{% endblock %}
+
+{% block content %}
+<div class="page-layout">
+<div class="page-header">
+    <h1>📋 Panel de Jurado</h1>
+    <p class="welcome" style="color:rgba(255,255,255,0.85);margin-bottom:0;">
+        Bienvenido, <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+    </p>
+</div>
+
+{# ====================== MÉTRICAS ====================== #}
+<div class="metrics-grid">
+    <div class="metric-card">
+        <div class="metric-value">{{ total_evaluaciones }}</div>
+        <div class="metric-label">Evaluaciones realizadas</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-value">{{ resultados|length }}</div>
+        <div class="metric-label">Resultados registrados</div>
+    </div>
+</div>
+
+{# ====================== EVALUACIONES REALIZADAS ====================== #}
+{% if evaluaciones %}
+<div class="card" style="margin-top:1.5rem;">
+    <h3 style="margin-top:0;">📝 Evaluaciones que he realizado</h3>
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Aprendiz</th>
+                    <th>Checklist</th>
+                    <th>Estado</th>
+                    <th>Fecha</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in evaluaciones|dictsortreversed:"id"|slice:":10" %}
+                <tr>
+                    <td>{{ e.aprendiz.nombres }} {{ e.aprendiz.apellidos }}</td>
+                    <td>{{ e.checklist.titulo }}</td>
+                    <td>
+                        {% if e.estado == 'completada' %}
+                            <span class="badge badge-success">Completada</span>
+                        {% elif e.estado == 'pendiente' %}
+                            <span class="badge badge-warning">Pendiente</span>
+                        {% else %}
+                            <span class="badge">{{ e.estado }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ e.fecha|date:"d/m/Y" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="empty-state">No hay evaluaciones aún.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{# ====================== GAES A EVALUAR ====================== #}
+{% if gaes_disponibles %}
+<div class="card" style="margin-top:1.5rem;">
+    <h3 style="margin-top:0;">GAES a evaluar</h3>
+    <div class="metrics-grid">
+        {% for gaes in gaes_disponibles %}
+        <div class="metric-card gaes-item">
+            <a href="{% url 'evaluar_gaes' gaes.id %}" style="text-decoration:none;color:inherit;">
+                <div style="font-size:1.5rem;">👥</div>
+                <div class="metric-label">{{ gaes.nombre }}</div>
+                <small>{{ gaes.cant_aprendices }} aprendices</small>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+<p><a href="{% url 'lista_aprendices' %}">Ir a la lista de aprendices</a> para comenzar.</p>
+{% endif %}
+
+{# ====================== ACCESOS RÁPIDOS ====================== #}
+<div class="metrics-grid" style="margin-top:1.5rem;">
+    <div class="metric-card">
+        <a href="{% url 'invitaciones_jurado' %}" style="text-decoration:none;color:inherit;">
+            <div style="font-size:2rem;">📨</div>
+            <div class="metric-label">Mis Invitaciones</div>
+        </a>
+    </div>
+    <div class="metric-card">
+        <a href="{% url 'lista_evaluaciones' %}" style="text-decoration:none;color:inherit;">
+            <div style="font-size:2rem;">📝</div>
+            <div class="metric-label">Evaluaciones</div>
+        </a>
+    </div>
+    <div class="metric-card">
+        <a href="{% url 'lista_resultados' %}" style="text-decoration:none;color:inherit;">
+            <div style="font-size:2rem;">📊</div>
+            <div class="metric-label">Resultados</div>
+        </a>
+    </div>
+    <div class="metric-card">
+        <a href="{% url 'lista_checklists' %}" style="text-decoration:none;color:inherit;">
+            <div style="font-size:2rem;">✅</div>
+            <div class="metric-label">Checklists</div>
+        </a>
+    </div>
+</div>
+</div>
+{% endblock %}

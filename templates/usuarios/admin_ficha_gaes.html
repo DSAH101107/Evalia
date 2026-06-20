@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}GAES de la Ficha {{ ficha.numero }} - Resultados{% endblock %}
+{% block content %}
+<h1>📊 GAES de la Ficha {{ ficha.numero }}</h1>
+<p class="welcome">Bienvenido, <strong>{{ request.user.get_full_name|default:request.user.username }}</strong></p>
+
+<form method="get" style="margin-bottom: 1rem;">
+    <input type="text" name="search" placeholder="Buscar por nombre de GAES" value="{{ search }}" style="padding: 0.5rem; width: 250px;">
+    <button type="submit" class="btn btn-primary">Buscar</button>
+    <a href="{% url 'admin_ficha_gaes' ficha.id %}" class="btn btn-outline">Limpiar</a>
+</form>
+
+{% if gaes_list %}
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>GAES</th>
+                <th>Aprendices con resultados</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for gaes in gaes_list %}
+            <tr style="{% if forloop.counter|divisibleby:2 %}background:#fafafa;{% endif %}">
+                <td>{{ gaes.nombre }}</td>
+                <td>
+                    {% with gaes.aprendices|length as count %}{{ count }}{% endwith %}
+                </td>
+                <td>
+                    <a href="{% url 'admin_gaes_aprendices' gaes.id %}" class="btn btn-outline btn-sm">Ver aprendices</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+    <p style="text-align:center; padding:2rem; color:var(--gris-texto);">📭 No hay GAES con resultados en esta ficha.</p>
+{% endif %}
+{% endblock %}

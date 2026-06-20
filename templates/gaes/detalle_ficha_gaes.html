@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Ficha {{ ficha.numero }} - GAES - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'ver_gaes_ficha' ficha.pk %}" class="btn btn-outline">🔙 Volver</a>
+    <a href="{% url 'lista_fichas_con_aprendices' %}" class="btn btn-outline">📁 Volver a Fichas</a>
+</div>
+
+<h1>Ficha {{ ficha.numero }}</h1>
+
+<div class="card">
+    <p><strong>Programa:</strong> {{ ficha.programa|default:"-" }}</p>
+    <p><strong>Trimestre:</strong> {{ ficha.trimestre|default:"-" }}</p>
+    <p><strong>Estado:</strong> {{ ficha.get_estado_display }}</p>
+    <p><strong>Instructor:</strong> {% if ficha.instructor %}{{ ficha.instructor.get_full_name|default:ficha.instructor.username }}{% else %}Sin asignar{% endif %}</p>
+</div>
+
+<h2>GAES en esta ficha</h2>
+<div class="card">
+    {% if gaes_list %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <th>Aprendices</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for g in gaes_list %}
+            <tr>
+                <td>{{ g.nombre }}</td>
+                <td>{{ g.descripcion|default:"-"|truncatechars:50 }}</td>
+                <td>{{ g.cant_aprendices|default:0 }}</td>
+                <td>
+                    <a href="{% url 'detalle_gaes' g.pk %}">Gestionar</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No hay GAES creados para esta ficha.</p>
+    {% endif %}
+    <div class="form-actions" style="margin-top: 1rem;">
+        <a href="{% url 'crear_gaes' %}" class="btn btn-primary">➕ Crear GAES para esta ficha</a>
+    </div>
+</div>
+
+<h2>Aprendices en esta ficha</h2>
+<div class="card">
+    {% if aprendices %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Documento</th>
+                <th>Fase</th>
+                <th>GAES</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for a in aprendices %}
+            <tr>
+                <td>{{ a.nombres }} {{ a.apellidos }}</td>
+                <td>{{ a.documento }}</td>
+                <td>{{ a.fase|default:"-" }}</td>
+                <td>{{ a.gaes.nombre|default:"Sin GAES" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No hay aprendices en esta ficha.</p>
+    {% endif %}
+</div>
+{% endblock %}

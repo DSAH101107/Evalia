@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Lista de Resultados - Sistema SENA{% endblock %}
+
+{% block content %}
+{# ====================== PANEL DE FILTROS ====================== #}
+<div class="card" style="margin-bottom: 1.5rem;">
+    <form method="get" action="" id="filtros-form">
+        <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+            <!-- Búsqueda general -->
+            <div style="flex: 1; min-width: 250px;">
+                <label for="search">Búsqueda general</label>
+                <input type="text" id="search" name="search" placeholder="Nombre, documento, email…" value="{{ search }}" style="width:100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px;">
+            </div>
+
+            <!-- Aprendiz -->
+            <div style="flex: 1; min-width: 160px;">
+                <label for="filtro_aprendiz">Aprendiz</label>
+                <input type="text" id="filtro_aprendiz" name="filtro_aprendiz" placeholder="Aprendiz…" value="{{ filtro_aprendiz }}" style="width:100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px;">
+            </div>
+
+            <!-- Programa -->
+            <div style="flex: 1; min-width: 180px;">
+                <label for="filtro_programa">Programa</label>
+                <input type="text" id="filtro_programa" name="filtro_programa" placeholder="Programa…" value="{{ filtro_programa }}" style="width:100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px;">
+            </div>
+
+            <!-- Calificación -->
+            <div style="flex: 1; min-width: 140px;">
+                <label for="filtro_calificacion">Calificación</label>
+                <select id="filtro_calificacion" name="filtro_calificacion" style="width:100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px;">
+                    <option value="">Todos</option>
+                    <option value="aprobado" {% if filtro_calificacion == 'aprobado' %}selected{% endif %}>Aprobado</option>
+                    <option value="reprobado" {% if filtro_calificacion == 'reprobado' %}selected{% endif %}>Reprobado</option>
+                </select>
+            </div>
+
+            <!-- Acciones -->
+            <div style="display: flex; gap: 0.5rem;">
+                <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1rem;">🔍 Filtrar</button>
+                <a href="{% url 'lista_resultados' %}" class="btn btn-outline" style="padding: 0.5rem 1rem;">Limpiar</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+        <h2>📈 Resultados de Evaluaciones</h2>
+        <div style="display:flex; gap:0.5rem;">
+            {% if user.rol in 'administrador,instructor,jurado' %}
+            <a href="{% url 'exportar_resultados_excel' %}" class="btn btn-primary">📊 Exportar Excel</a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if resultados %}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Aprendiz</th>
+                    <th>Programa</th>
+                    <th>Calificación</th>
+                    <th>Fecha</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for resultado in resultados %}
+                <tr style="{% if forloop.counter|divisibleby:2 %}background:#fafafa;{% endif %}">
+                    <td>{{ resultado.aprendiz.nombres }} {{ resultado.aprendiz.apellidos }}</td>
+                    <td>{{ resultado.aprendiz.programa }}</td>
+                    <td>
+                        <span class="badge">
+                            {% if resultado.promedio >= 9 %}✅{{ resultado.calificacion_final }}
+                            {% elif resultado.promedio >= 7 %}🟡{{ resultado.calificacion_final }}
+                            {% else %}🔴{{ resultado.calificacion_final }}{% endif %}
+                        </span>
+                    </td>
+                    <td>{{ resultado.fecha_cierre|date:"d/m/Y" }}</td>
+                    <td>
+                        <a href="{% url 'ver_resultado' resultado.id %}" class="btn btn-outline btn-sm">Ver</a>
+                        <a href="{% url 'generar_reporte_pdf' resultado.id %}" class="btn btn-outline btn-sm" target="_blank">PDF</a>
+                        <form action="{% url 'eliminar_resultado' resultado.id %}" method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline btn-sm" style="color: #dc3545;" onclick="return confirm('¿Eliminar permanentemente el resultado de \"{{ resultado.aprendiz.nombres }} {{ resultado.aprendiz.apellidos }}\"? Esta acción no se puede deshacer.');">🗑️ Eliminar</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="text-align:center; padding:2rem; color:var(--gris-texto);">📭 No hay resultados registrados.</p>
+    {% endif %}
+</div>
+{% endblock %}

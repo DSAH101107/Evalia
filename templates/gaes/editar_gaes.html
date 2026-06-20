@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Editar GAES - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'detalle_gaes' gaes.pk %}" class="btn btn-outline">↩️ Volver al GAES</a>
+</div>
+<h1>Editar GAES</h1>
+
+<div class="card">
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="nombre">Nombre</label>
+            <input type="text" id="nombre" name="nombre" value="{{ gaes.nombre }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="descripcion">Descripción</label>
+            <textarea id="descripcion" name="descripcion" rows="3">{{ gaes.descripcion }}</textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="ficha_id">Ficha (opcional)</label>
+            <select id="ficha_id" name="ficha_id">
+                <option value="">-- Sin ficha asignada --</option>
+                {% for ficha in fichas %}
+                <option value="{{ ficha.id }}" {% if gaes.ficha and gaes.ficha.id == ficha.id %}selected{% endif %}>{{ ficha.numero }} - {{ ficha.programa|default:"" }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+            <a href="{% url 'detalle_gaes' gaes.pk %}" class="btn btn-outline">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

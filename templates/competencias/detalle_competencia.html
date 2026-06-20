@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Competencia {{ comp.codigo }} - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'lista_competencias' %}" class="btn btn-outline">↩️ Volver</a>
+</div>
+<h1>{{ comp.codigo }} - {{ comp.nombre }}</h1>
+
+<div class="card">
+    <p><strong>Descripción:</strong> {{ comp.descripcion|default:"Sin descripción" }}</p>
+    <p><strong>Fase:</strong> {{ comp.fase|default:"-" }}</p>
+    <p><strong>GAES:</strong> {{ comp.gaes|default:"-" }}</p>
+    <p><strong>Ficha:</strong> {{ comp.ficha|default:"-" }}</p>
+    <p><strong>Trimestre:</strong> {{ comp.trimestre|default:"-" }}</p>
+    
+    <div class="form-actions">
+        <a href="{% url 'editar_competencia' comp.pk %}" class="btn btn-primary">Editar</a>
+        <form action="{% url 'eliminar_competencia' comp.pk %}" method="post" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger" onclick="return confirm('¿Está seguro?')">Eliminar</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

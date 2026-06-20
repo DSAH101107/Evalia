@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Mis Resultados - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'dashboard_jurado' %}" class="btn btn-outline">🏠 Volver al Dashboard</a>
+</div>
+
+<div class="page-header">
+    <h1>📈 Mis Resultados</h1>
+</div>
+
+<div class="card">
+    {% include "partials/search_bar.html" with search_name='search' placeholder='Buscar por nombre o documento...' value=search button_text='Buscar' button_class='btn btn-secondary' form_class='' %}
+    <br><br>
+    
+    {% if resultados %}
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Aprendiz</th>
+                    <th>Programa</th>
+                    <th>Calificación</th>
+                    <th>Fecha</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for resultado in resultados %}
+                <tr>
+                    <td>{{ resultado.aprendiz.nombres }} {{ resultado.aprendiz.apellidos }}</td>
+                    <td>{{ resultado.aprendiz.programa }}</td>
+                    <td>
+                        <span class="badge">
+                            {% if resultado.promedio >= 9 %}✅{{ resultado.calificacion_final }}
+                            {% elif resultado.promedio >= 7 %}🟡{{ resultado.calificacion_final }}
+                            {% else %}🔴{{ resultado.calificacion_final }}{% endif %}
+                        </span>
+                    </td>
+                    <td>{{ resultado.fecha_cierre|date:"d/m/Y" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="empty-state">No hay resultados disponibles.</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block title %}Evaluar {{ evaluacion.aprendiz.nombres }} {{ evaluacion.aprendiz.apellidos }} - {{ evaluacion.checklist.titulo }} - Sistema SENA{% endblock %}
+
+{% block extra_css %}
+<style>
+@media print {
+    .no-print { display: none !important; }
+    .print-only { display: block !important; }
+    .item-print-row {
+        display: flex !important;
+        border: 1px solid #ccc !important;
+        border-radius: 4px !important;
+        padding: 10px !important;
+        margin-bottom: 8px !important;
+        page-break-inside: avoid !important;
+    }
+    .print-criterio { flex: 1; font-weight: 500; }
+    .print-checkbox { flex: 0 0 80px; text-align: center; }
+    .print-observaciones { flex: 1; margin-left: 15px; font-size: 0.9em; }
+}
+.print-only { display: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'home' %}" class="btn btn-outline">🏠 Volver al inicio</a>
+    <button type="button" onclick="window.print()" class="btn btn-primary no-print" style="margin-left: 1rem;">🖨️ Imprimir Checklist</button>
+</div>
+<div class="card">
+    {# --- Encabezado de evaluación --- #}
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <div>
+            <h1>📝 Evaluación en Progreso</h1>
+            <p style="margin: 0; color: var(--gris-texto);">
+                <strong>{{ evaluacion.aprendiz.nombres }} {{ evaluacion.aprendiz.apellidos }}</strong> |
+                Doc: {{ evaluacion.aprendiz.documento }} |
+                Checklist: {{ evaluacion.checklist.titulo }}
+            </p>
+        </div>
+        <a href="{% url 'lista_aprendices' %}" class="btn btn-outline no-print">← Lista Aprendices</a>
+    </div>
+
+    {# --- Form de calificación (POST) --- #}
+    <form method="post" id="form-evalar-aprendiz">
+        {% csrf_token %}
+
+        <h3>Calificar Items</h3>
+
+        {% for item in items %}
+        <!-- Fila para captura -->
+        <div id="item-row-{{ item.id }}" class="no-print"
+              style="border: 1px solid var(--bordes); border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem; background: var(--blanco);">
+            <div style="display: flex; gap: 1.5rem; align-items: flex-start; flex-wrap: wrap;">
+                
+                {# 1. Número de item #}
+                <div style="flex: 0 0 28px; text-align: center; padding-top: 0.25rem;">
+                    <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;
+                                  border-radius:50%;background:var(--azul);color:#fff;font-weight:700;font-size:0.875rem;">
+                        {{ forloop.counter }}
+                    </span>
+                </div>
+
+                {# 2. Contenido principal: criterio, descripción, casillas y observaciones #}
+                <div style="flex: 1; min-width: 200px; display: flex; gap: 1.5rem; align-items: flex-start;">
+                    
+                    {# Información del criterio y descripción (izquierda) #}
+                    <div style="flex: 0 0 250px; min-width: 250px;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">{{ item.criterio }}</label>
+                        {% if item.descripcion %}
+                        <p style="margin: 0 0 0.5rem; color: var(--gris-texto); font-size: 0.9rem; line-height: 1.3;">{{ item.descripcion }}</p>
+                        {% endif %}
+                    </div>
+
+                    {# Casillas Sí/No y campo de observaciones (derecha) #}
+                    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                        
+                        {# Casilla Sí / No (vertical) #}
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                         <label style="display:flex;align-items:center;gap:0.25rem;cursor:pointer;font-weight:500;">
+                             <input type="radio" name="puntaje_{{ item.id }}" value="1"
+                                    id="item-{{ item.id }}-si" required>
+                             ✅ Sí
+                         </label>
+                         <label style="display:flex;align-items:center;gap:0.25rem;cursor:pointer;font-weight:500;">
+                             <input type="radio" name="puntaje_{{ item.id }}" value="0"
+                                    id="item-{{ item.id }}-no">
+                             ❌ No
+                         </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Fila para impresión con checkboxes y observaciones al lado -->
+        <div class="print-only item-print-row">
+            <div class="print-criterio">
+                <strong>{{ forloop.counter }}. {{ item.criterio }}</strong>
+                {% if item.descripcion %}<br><small>{{ item.descripcion }}</small>{% endif %}
+            </div>
+            <div class="print-checkbox">
+                ☐ Sí  ☑ No
+            </div>
+            <div class="print-observaciones">
+                {{ item.observaciones|default:"___________________________" }}
+            </div>
+        </div>
+        {% empty %}
+        <p style="text-align: center; color: var(--gris-texto); padding: 2rem;">
+            No hay items en esta checklist.
+            <a href="{% url 'lista_checklists' %}">Ver checklists</a>
+        </p>
+        {% endfor %}
+
+        {# Observaciones generales de la evaluación #}
+        <div style="border-top: 2px solid var(--bordes); padding-top: 1.25rem; margin-top: 2rem;">
+            <label for="observaciones_generales" style="font-weight: 500;">Observaciones Generales:</label>
+            <textarea id="observaciones_generales" name="observaciones" rows="3"
+                      style="width: 100%; padding: 0.625rem; border: 1px solid var(--bordes);
+                             border-radius: 6px; margin-top: 0.35rem; resize: vertical;"
+                      placeholder="Observaciones generales sobre la evaluación (opcional)"></textarea>
+        </div>
+
+        <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+            <a href="{% url 'lista_aprendices' %}" class="btn btn-secondary">Cancelar</a>
+            <button type="submit" class="btn btn-primary" style="padding: 0.75rem 2rem; font-size: 1.1rem;">
+                💾 Completar Evaluación
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.getElementById('form-evaluar-aprendiz').addEventListener('submit', function(e) {
+    const puntajes = document.querySelectorAll('input[name^="puntaje_"]');
+    const itemsMap = {};
+    puntajes.forEach(function(radio) {
+        const itemId = radio.name.match(/puntaje_(\d+)/)[1];
+        if (!itemsMap[itemId]) itemsMap[itemId] = false;
+    });
+    
+    let allMarked = true;
+    puntajes.forEach(function(radio) {
+        if (radio.checked) {
+            const itemId = radio.name.match(/puntaje_(\d+)/)[1];
+            itemsMap[itemId] = true;
+        }
+    });
+    
+    for (const itemId in itemsMap) {
+        if (!itemsMap[itemId]) {
+            allMarked = false;
+            break;
+        }
+    }
+    
+    if (!allMarked) {
+        e.preventDefault();
+        alert('Debe marcar todas las casillas de evaluación (Sí o No) antes de completar.');
+        return false;
+    }
+});
+</script>
+{% endblock %}

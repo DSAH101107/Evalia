@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Importar Aprendices - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'home' %}" class="btn btn-outline">🏠 Volver al inicio</a>
+</div>
+<h1>Importar Aprendices desde Excel</h1>
+
+<div class="card">
+    <p>Sube un archivo Excel (.xlsx) con las siguientes columnas requeridas:</p>
+    <ul>
+        <li>documento</li>
+        <li>nombres</li>
+        <li>apellidos</li>
+        <li>email</li>
+    </ul>
+    <p>Estas columnas son opcionales (se asignarán por defecto si no se proporcionan):</p>
+    <ul>
+        <li>telefono</li>
+        <li>programa</li>
+        <li>ficha</li>
+        <li>gaes</li>
+        <li>fase</li>
+        <li>trimestre</li>
+    </ul>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="archivo">Archivo Excel</label>
+            <input type="file" id="archivo" name="archivo_excel" accept=".xlsx" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="default_fase">Fase por defecto (para filas sin fase especificada):</label>
+            <select class="form-control" id="default_fase" name="default_fase">
+                <option value="">Seleccione una fase (opcional)</option>
+                {% for fase in fases %}
+                    <option value="{{ fase.numero }}">Fase {{ fase.numero }}{% if fase.nombre %} - {{ fase.nombre }}{% endif %}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="default_gaes">GAES por defecto (para filas sin GAES especificado):</label>
+            <select class="form-control" id="default_gaes" name="default_gaes">
+                <option value="">Seleccione un GAES (opcional)</option>
+                {% for gaes in gaes_list %}
+                    <option value="{{ gaes.nombre }}">{{ gaes.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="default_ficha">Ficha por defecto (para filas sin ficha especificada):</label>
+            <select class="form-control" id="default_ficha" name="default_ficha">
+                <option value="">Seleccione una ficha (opcional)</option>
+                {% for ficha in fichas_list %}
+                    <option value="{{ ficha.id }}">{{ ficha.numero }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Importar</button>
+            <a href="{% url 'dashboard_instructor' %}" class="btn btn-outline">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

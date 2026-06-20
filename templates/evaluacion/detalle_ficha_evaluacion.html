@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Evaluación Ficha {{ ficha.numero }} - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'lista_evaluaciones' %}" class="btn btn-outline">🔙 Volver a Evaluaciones</a>
+    <a href="{% url 'generar_reporte_ficha' ficha.id %}" class="btn btn-primary">📄 Descargar Reporte</a>
+</div>
+
+<h1>📊 Evaluación de la Ficha: {{ ficha.numero }}</h1>
+
+<div class="card">
+    <h3>Información de la Ficha</h3>
+    <p><strong>Programa:</strong> {{ ficha.programa|default:"—" }}</p>
+    <p><strong>Instructor:</strong> {{ ficha.instructor.get_full_name|default:ficha.instructor.username|default:"No asignado" }}</p>
+    <p><strong>Fecha:</strong> {{ ficha.updated_at|date:"d/m/Y" }}</p>
+</div>
+
+<div class="card">
+    <h3>Jurados que Evaluaron</h3>
+    {% if jurados_ficha %}
+    <ul>
+        {% for jurado in jurados_ficha %}
+        <li>{{ jurado.get_full_name|default:jurado.username }}</li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>No evaluado</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h3>GAES de la Ficha</h3>
+    {% if gaes_list %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>GAES</th>
+                <th>Aprendices</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for g in gaes_list %}
+            <tr>
+                <td>{{ g.nombre }}</td>
+                <td>{{ g.aprendices.count }}</td>
+                <td>
+                    {% if g.estado == "Evaluado" %}
+                        <span class="badge badge-success">{{ g.estado }}</span>
+                    {% elif g.estado == "Parcial" %}
+                        <span class="badge badge-warning">{{ g.estado }}</span>
+                    {% else %}
+                        <span class="badge">{{ g.estado }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No hay GAES en esta ficha.</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h3>Institución</h3>
+    <p><strong>SENA - Servicio Nacional de Aprendizaje</strong></p>
+</div>
+{% endblock %}

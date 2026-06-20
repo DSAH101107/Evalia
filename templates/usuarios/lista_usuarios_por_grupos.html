@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Usuarios por grupos - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'dashboard_admin' %}" class="btn btn-outline">🏠 Volver al panel admin</a>
+</div>
+
+{# ====================== PANEL DE FILTROS ====================== #}
+<div class="card" style="margin-bottom: 1.5rem;">
+    <form method="get" action="" id="filtros-form">
+        <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+            <!-- Búsqueda general -->
+            <div style="flex: 1; min-width: 250px;">
+                <label for="search">Búsqueda general</label>
+                <input type="text" id="search" name="search" placeholder="Nombre, documento, email, rol…" value="{{ search }}" style="width:100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px;">
+            </div>
+
+            <!-- Rol -->
+            <div style="flex: 1; min-width: 140px;">
+                <label for="filtro_rol">Rol</label>
+                <select id="filtro_rol" name="filtro_rol" style="width:100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px;">
+                    <option value="">Todos</option>
+                    <option value="administrador" {% if filtro_rol == 'administrador' %}selected{% endif %}>Admin</option>
+                    <option value="instructor" {% if filtro_rol == 'instructor' %}selected{% endif %}>Instructor</option>
+                    <option value="jurado" {% if filtro_rol == 'jurado' %}selected{% endif %}>Jurado</option>
+                    <option value="aprendiz" {% if filtro_rol == 'aprendiz' %}selected{% endif %}>Aprendiz</option>
+                </select>
+            </div>
+
+            <!-- Estado -->
+            <div style="flex: 1; min-width: 120px;">
+                <label for="filtro_activo">Estado</label>
+                <select id="filtro_activo" name="filtro_activo" style="width:100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px;">
+                    <option value="">Todos</option>
+                    <option value="true" {% if filtro_activo == 'true' %}selected{% endif %}>Activo</option>
+                    <option value="false" {% if filtro_activo == 'false' %}selected{% endif %}>Inactivo</option>
+                </select>
+            </div>
+
+            <!-- Acciones -->
+            <div style="display: flex; gap: 0.5rem;">
+                <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1rem;">🔍 Filtrar</button>
+                <a href="{% url 'lista_usuarios_por_grupos' %}" class="btn btn-outline" style="padding: 0.5rem 1rem;">Limpiar</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h2>📋 Gestión de Usuarios (por grupos)</h2>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <a href="{% url 'crear_usuario' %}" class="btn btn-primary">➕ Crear Usuario</a>
+        </div>
+    </div>
+
+    <div class="accordion" id="usuariosAccordion">
+        {# ---------------- ADMIN ---------------- #}
+        {% if usuarios_admin|length > 0 or not filtro_rol %}
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingAdmin">
+                <button class="accordion-button{% if filtro_rol == 'administrador' %} collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAdmin" aria-expanded="{% if filtro_rol == 'administrador' or not filtro_rol %}true{% else %}false{% endif %}" aria-controls="collapseAdmin">
+                    🛡️ Admin ({{ usuarios_admin|length }})
+                </button>
+            </h2>
+            <div id="collapseAdmin" class="accordion-collapse collapse{% if filtro_rol == 'administrador' or not filtro_rol %} show{% endif %}" aria-labelledby="headingAdmin" data-bs-parent="#usuariosAccordion">
+                <div class="accordion-body">
+                    {% include "usuarios/partials/tabla_usuarios.html" with usuarios=usuarios_admin %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {# ----------- INSTRUCTORES/JURADOS ----------- #}
+        {% if usuarios_instructores_jurados|length > 0 or not filtro_rol %}
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingInstructorJurado">
+                <button class="accordion-button{% if filtro_rol != 'instructor' and filtro_rol != 'jurado' %} collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseInstructorJurado" aria-expanded="{% if filtro_rol == 'instructor' or filtro_rol == 'jurado' %}true{% else %}false{% endif %}" aria-controls="collapseInstructorJurado">
+                    👥 Instructores/Jurados ({{ usuarios_instructores_jurados|length }})
+                </button>
+            </h2>
+            <div id="collapseInstructorJurado" class="accordion-collapse collapse{% if filtro_rol == 'instructor' or filtro_rol == 'jurado' %} show{% endif %}" aria-labelledby="headingInstructorJurado" data-bs-parent="#usuariosAccordion">
+                <div class="accordion-body">
+                    {% include "usuarios/partials/tabla_usuarios.html" with usuarios=usuarios_instructores_jurados %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {# ---------------- APRENDICES ---------------- #}
+        {% if usuarios_aprendices|length > 0 or not filtro_rol %}
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingAprendices">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAprendices" aria-expanded="{% if filtro_rol == 'aprendiz' %}true{% else %}false{% endif %}" aria-controls="collapseAprendices">
+                    🎒 Aprendices ({{ usuarios_aprendices|length }})
+                </button>
+            </h2>
+            <div id="collapseAprendices" class="accordion-collapse collapse{% if filtro_rol == 'aprendiz' %} show{% endif %}" aria-labelledby="headingAprendices" data-bs-parent="#usuariosAccordion">
+                <div class="accordion-body">
+                    {% include "usuarios/partials/tabla_usuarios.html" with usuarios=usuarios_aprendices %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block title %}Evaluar GAES: {{ gaes.nombre }} - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'home' %}" class="btn btn-outline">🏠 Volver al inicio</a>
+    <a href="{% url 'detalle_gaes' gaes.id %}" class="btn btn-secondary">← Volver a GAES</a>
+</div>
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h1>🚀 Evaluar GAES: {{ gaes.nombre }}</h1>
+            <p style="margin: 0.25rem 0; color: var(--gris-texto);">
+                <strong>Aprendices en GAES:</strong> {{ aprendices|length }} |
+                {% if checklist %}Checklist: <strong>{{ checklist.titulo }}</strong>{% else %}Selecciona un checklist para evaluar a todos los aprendices del GAES con la misma calificación{% endif %}
+            </p>
+        </div>
+        {% if checklist %}
+        <button type="button" class="btn btn-outline no-print" onclick="descargarPDF({{ gaes.id }}, {{ checklist.id }})">
+            🖨️ Descargar PDF
+        </button>
+        {% endif %}
+    </div>
+
+    <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+        <h3 style="margin: 0; color: #495057;">{{ gaes.nombre }}</h3>
+        <p style="margin: 0.25rem 0; color: #6c757d;">
+            <strong>Descripción:</strong> {{ gaes.descripcion|default:"—" }}
+        </p>
+    </div>
+
+    <form method="get" style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid var(--bordes);">
+        <label for="checklist_id" style="font-weight: 600;">Selecciona checklist:</label>
+        <select name="checklist_id" id="checklist_id" required onchange="this.form.submit()"
+                style="padding: 0.5rem; border: 1px solid var(--bordes); border-radius: 6px; min-width: 320px;">
+            <option value="" disabled selected>Selecciona...</option>
+            {% for cl in checklists %}
+            <option value="{{ cl.id }}" {% if checklist and cl.id == checklist.id %}selected{% endif %}>{{ cl.titulo }}</option>
+            {% endfor %}
+        </select>
+    </form>
+
+    {% if checklist %}
+    <form method="post" id="form-evaluar-gaes">
+        {% csrf_token %}
+        <input type="hidden" name="checklist_id" value="{{ checklist.id }}">
+        {% for aprendiz in aprendices %}
+        <input type="hidden" name="aprendiz_ids" value="{{ aprendiz.id }}">
+        {% endfor %}
+
+        <h3 style="margin-bottom: 0.75rem;">Calificar Checklist: {{ checklist.titulo }}</h3>
+        <p style="color: var(--gris-texto); font-size: 0.9rem; margin-bottom: 1.5rem;">
+            Esta calificación se aplicará a <strong>{{ aprendices|length }} aprendices</strong> del GAES.
+            Marca <strong>Sí</strong> si el GAES cumple el criterio, o <strong>No</strong> si no lo cumple.
+        </p>
+
+{% for item in items %}
+         <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.15rem; margin-bottom: 0.75rem; background: #fafafa; display: grid; grid-template-columns: auto 1fr auto auto; gap: 1rem; align-items: center;">
+             <span style="font-weight: 700; color: #1e40af; font-size: 0.9rem;">{{ forloop.counter }}</span>
+             <div>
+                 <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">{{ item.criterio }}</label>
+                 {% if item.descripcion %}
+                 <p style="margin: 0; color: var(--gris-texto); font-size: 0.85rem; line-height: 1.3;">{{ item.descripcion }}</p>
+                 {% endif %}
+             </div>
+<div style="display: flex; gap: 0.75rem; align-items: center;">
+                  <label style="display:flex;align-items:center;gap:0.25rem;cursor:pointer;font-weight:500;">
+                      <input type="radio" name="puntaje_{{ item.id }}" value="1" required> ✅ Sí
+                  </label>
+                  <label style="display:flex;align-items:center;gap:0.25rem;cursor:pointer;font-weight:500;">
+                      <input type="radio" name="puntaje_{{ item.id }}" value="0"> ❌ No
+                  </label>
+              </div>
+             <textarea name="observaciones_{{ item.id }}" placeholder="Obs (opcional)"
+                    style="width: 500px; min-height: 60px; padding: 0.35rem 0.5rem; border: 1px solid var(--bordes); border-radius: 4px; font-size: 0.85rem; resize: vertical;"></textarea>
+         </div>
+         {% endfor %}
+
+        <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+            <a href="{% url 'evaluar_gaes' gaes.id %}" class="btn btn-secondary">Cancelar</a>
+            <button type="submit" class="btn btn-primary" style="padding: 0.75rem 2rem; font-size: 1.1rem;">
+                💾 Guardar Evaluación del GAES ({{ aprendices|length }} aprendices)
+            </button>
+        </div>
+    </form>
+    {% elif not aprendices %}
+    <div style="margin-top: 2rem; padding: 2rem; text-align: center; color: var(--gris-texto); border: 1px dashed var(--bordes); border-radius: 8px;">
+        Este GAES no tiene aprendices asignados. Agrega aprendices desde el detalle del GAES antes de evaluar.
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function descargarPDF(gaesId, checklistId) {
+    const url = `/evaluacion/gaes/${gaesId}/pdf/${checklistId}/`;
+    window.location.href = url;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('form-evaluar-gaes');
+    if (!form) return;
+    form.addEventListener('submit', function(e) {
+        const puntajes = document.querySelectorAll('input[name^="puntaje_"]');
+        const itemsMap = {};
+        puntajes.forEach(function(radio) {
+            const itemId = radio.name.match(/puntaje_(\d+)/)[1];
+            if (!itemsMap[itemId]) itemsMap[itemId] = false;
+        });
+        
+        puntajes.forEach(function(radio) {
+            if (radio.checked) {
+                const itemId = radio.name.match(/puntaje_(\d+)/)[1];
+                itemsMap[itemId] = true;
+            }
+        });
+        
+        for (const itemId in itemsMap) {
+            if (!itemsMap[itemId]) {
+                e.preventDefault();
+                alert('Debe marcar todas las casillas de evaluación (Sí o No) antes de guardar.');
+                return false;
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

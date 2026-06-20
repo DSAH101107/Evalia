@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Fase - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'lista_fases' %}" class="btn btn-outline">← Volver</a>
+</div>
+<h1>Editar Fase {{ fase.numero }}</h1>
+
+<div class="card">
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="numero">Número de Fase</label>
+                <input type="number" id="numero" name="numero" min="1" max="7" value="{{ fase.numero }}" disabled>
+            </div>
+            <div class="form-group">
+                <label for="nombre">Nombre</label>
+                <input type="text" id="nombre" name="nombre" value="{{ fase.nombre }}" placeholder="Ej: Fase 1">
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+            <a href="{% url 'lista_fases' %}" class="btn btn-outline">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

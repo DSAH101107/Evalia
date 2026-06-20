@@ -1,0 +1,39 @@
+<div class="table-responsive">
+    <table>
+        <thead>
+            <tr>
+                <th>Usuario</th>
+                <th>Email</th>
+                <th>Rol</th>
+                <th>Fecha Creación</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for usuario in usuarios %}
+            <tr>
+                <td>
+                    <strong>{{ usuario.username }}</strong>
+                </td>
+                <td>{{ usuario.email|default:"Sin email" }}</td>
+                <td>
+                    <span class="badge" style="background: {% if usuario.rol == 'administrador' %}#4A6FA5{% elif usuario.rol == 'instructor' %}#2E8B8B{% elif usuario.rol == 'jurado' %}#6B7280{% else %}#9CA3AF{% endif %}; color: white; padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.875rem;">
+                        {{ usuario.get_rol_display }}
+                    </span>
+                </td>
+                <td>{{ usuario.date_joined|date:"d/m/Y H:i" }}</td>
+                <td>
+                    <a href="{% url 'editar_usuario' usuario.id %}" class="btn btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.875rem;">Editar</a>
+                    <a href="{% url 'eliminar_usuario' usuario.id %}" class="btn btn-danger" style="padding: 0.375rem 0.75rem; font-size: 0.875rem;" onclick="return confirm('¿Eliminar usuario {{ usuario.username }}?')">Eliminar</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" style="text-align: center; color: var(--gris-texto); padding: 2rem;">
+                    No hay usuarios en este grupo
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

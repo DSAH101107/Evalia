@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Crear Ficha - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'dashboard_admin' %}" class="btn btn-outline">🏠 Volver al Panel</a>
+</div>
+<h1>Crear Ficha</h1>
+
+<div class="card">
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="numero">Número de Ficha</label>
+                <input type="text" id="numero" name="numero" value="{{ next_ficha }}" required>
+            </div>
+            <div class="form-group">
+                <label for="programa">Programa</label>
+                <input type="text" id="programa" name="programa">
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="jornada">Jornada</label>
+                <select id="jornada" name="jornada">
+                    <option value="mañana">Mañana</option>
+                    <option value="tarde">Tarde</option>
+                    <option value="noche">Noche</option>
+                    <option value="mixto">Mixto</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="gaes_cantidad">Cantidad de GAES a crear (mín. 1, máx. 10, recomendado 4)</label>
+                <input type="number" id="gaes_cantidad" name="gaes_cantidad" value="1" min="1" max="10" required>
+                <small>Cada GAES podrá asignar entre 1 y 4 aprendices.</small>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="trimestre">Trimestre</label>
+                <select id="trimestre" name="trimestre">
+                    <option value="">-- Seleccionar Trimestre --</option>
+                    {% for t in trimestres %}
+                    <option value="{{ t.id }}">{{ t.numero }} - {{ t.anio }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="instructor">Instructor</label>
+                <select id="instructor" name="instructor">
+                    <option value="">-- Seleccionar Instructor --</option>
+                    {% for i in instructores %}
+                    <option value="{{ i.id }}">{{ i.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Crear Ficha</button>
+            <a href="{% url 'dashboard_admin' %}" class="btn btn-outline">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

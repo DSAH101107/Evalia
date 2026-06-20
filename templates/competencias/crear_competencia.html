@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Crear Competencia - Sistema SENA{% endblock %}
+
+{% block extra_scripts %}
+{% if competencias_existentes %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    function usarCompetencia(codigo, nombre, desc, faseId, fichaId, trimId, gaesId) {
+        document.getElementById('codigo').value = codigo;
+        document.getElementById('nombre').value = nombre;
+        document.getElementById('descripcion').value = desc || '';
+        if (faseId)  document.querySelector('[name="fase"]').value = faseId;
+        if (fichaId) document.querySelector('[name="ficha"]').value = fichaId;
+        if (trimId)  document.querySelector('[name="trimestre"]').value = trimId;
+    }
+    window.usarCompetencia = usarCompetencia;
+});
+</script>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'dashboard_admin' %}" class="btn btn-outline">🏠 Volver al Panel</a>
+</div>
+<h1>Crear Competencia</h1>
+
+<div class="card">
+    <form method="post">
+        {% csrf_token %}
+
+        {% if competencias_existentes %}
+        <div style="margin-bottom:1rem; padding:1rem; background:#f0f8ff; border:1px solid #bcdffb; border-radius:8px;">
+            <strong>📋 Competencias existentes para esta fase (usa una como base):</strong>
+            <table class="data-table" style="margin-top:0.5rem;">
+                <thead>
+                    <tr><th>Código</th><th>Nombre</th><th>Descripción</th><th>Acción</th></tr>
+                </thead>
+                <tbody>
+                    {% for comp in competencias_existentes %}
+                    <tr>
+                        <td>{{ comp.codigo }}</td>
+                        <td>{{ comp.nombre }}</td>
+                        <td>{{ comp.descripcion|default:"—" }}</td>
+                        <td>
+                            <button type="button" class="btn btn-outline"
+                                    onclick="usarCompetencia(
+                                        '{{ comp.codigo }}',
+                                        '{{ comp.nombre }}',
+                                        {% if comp.descripcion %}'{{ comp.descripcion|escapejs }}'{% else %}''{% endif %},
+                                        '{{ comp.fase_id }}',
+                                        {% if comp.ficha_id %}'{{ comp.ficha_id }}'{% else %}''{% endif %},
+                                        {% if comp.trimestre_id %}'{{ comp.trimestre_id }}'{% else %}''{% endif %},
+                                        {% if comp.gaes_id %}'{{ comp.gaes_id }}'{% else %}''{% endif %}
+                                    )">
+                                📋 Usar
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="codigo">Código</label>
+                <input type="text" id="codigo" name="codigo" required>
+            </div>
+            <div class="form-group">
+                <label for="nombre">Nombre</label>
+                <input type="text" id="nombre" name="nombre" required>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="descripcion">Descripción</label>
+            <textarea id="descripcion" name="descripcion" rows="3"></textarea>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="fase">Fase</label>
+                <select id="fase" name="fase">
+                    <option value="">-- Seleccionar Fase --</option>
+                    {% for f in fases %}
+                    <option value="{{ f.id }}" {% if f.id|stringformat:"s" == fase_preset %}selected{% endif %}>Fase {{ f.numero }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="ficha">Ficha</label>
+                <select id="ficha" name="ficha">
+                    <option value="">-- Seleccionar Ficha --</option>
+                    {% for f in fichas %}
+                    <option value="{{ f.id }}" {% if f.id|stringformat:"s" == ficha_preset %}selected{% endif %}>{{ f.numero }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="trimestre">Trimestre</label>
+                <select id="trimestre" name="trimestre">
+                    <option value="">-- Seleccionar Trimestre --</option>
+                    {% for t in trimestres %}
+                    <option value="{{ t.id }}">{{ t.numero }} - {{ t.anio }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Crear Competencia</button>
+            <a href="{% url 'dashboard_admin' %}" class="btn btn-outline">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

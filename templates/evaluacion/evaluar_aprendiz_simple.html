@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Evaluar {{ aprendiz.nombres }} {{ aprendiz.apellidos }} - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'home' %}" class="btn btn-outline">🏠 Volver al inicio</a>
+</div>
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <div>
+            <h1>📝 Evaluar Aprendiz</h1>
+            <p class="subtitle" style="margin: 0; color: var(--gris-texto);">
+                <strong>{{ aprendiz.nombres }} {{ aprendiz.apellidos }}</strong> | 
+                Documento: {{ aprendiz.documento }} | 
+                Programa: {{ aprendiz.programa }} | Ficha: {{ aprendiz.ficha }}
+            </p>
+        </div>
+        <a href="{% url 'lista_aprendices' %}" class="btn btn-outline" style="padding: 0.5rem 1rem;">← Volver a Lista</a>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        
+        {# Temporal Etapa 4: checklist ya viene derivada desde fase en backend. #}
+        {% if selected_checklist %}
+        <div style="margin-bottom: 1rem;">
+            <h3>Checklist: {{ selected_checklist.titulo }}</h3>
+            <p style="color: var(--gris-texto);"><em>{{ selected_checklist.descripcion }}</em></p>
+            <input type="hidden" name="checklist_id" value="{{ selected_checklist.id }}">
+        </div>
+        {% endif %}
+
+
+        {% if selected_checklist %}
+        <h3>Items de la Checklist: {{ selected_checklist.titulo }}</h3>
+        <div style="border: 1px solid var(--bordes); border-radius: 4px; padding: 1rem; margin-bottom: 1rem; background: var(--gris-claro);">
+            <p><em>{{ selected_checklist.descripcion }}</em></p>
+        </div>
+
+        <div class="form-group">
+            <label>Evaluación de Items (Máx {{ total_max_puntaje|floatformat:0 }})</label>
+            {% for item in items %}
+            <div style="border: 1px solid var(--bordes); border-radius: 4px; padding: 1rem; margin-bottom: 1rem; background: var(--blanco);">
+                <div style="font-weight: 500; margin-bottom: 0.5rem;">{{ item.criterio }}</div>
+                <div style="color: var(--gris-texto); margin-bottom: 0.5rem; font-size: 0.9rem;">{{ item.descripcion }}</div>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <input type="number" name="item_{{ item.id }}" min="0" max="{{ item.puntaje_maximo }}" step="0.1" 
+                           style="width: 100px; padding: 0.5rem;" placeholder="0" required>
+                    <span style="font-weight: 500; color: var(--azul-grisaceo);">/ {{ item.puntaje_maximo }}</span>
+                    <label style="margin-left: auto;">
+                        <input type="checkbox" name="obs_{{ item.id }}"> Comentarios
+                        <textarea name="comentario_{{ item.id }}" rows="2" style="width: 100%; margin-top: 0.5rem; display: none;" placeholder="Comentarios opcionales..."></textarea>
+                    </label>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="form-group">
+            <label for="observaciones">Observaciones Generales</label>
+            <textarea id="observaciones" name="observaciones" rows="4" placeholder="Observaciones generales sobre la evaluación..."></textarea>
+        </div>
+        {% endif %}
+
+        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+            <a href="{% url 'lista_aprendices' %}" class="btn btn-outline">Cancelar</a>
+            {% if selected_checklist %}
+            <button type="submit" class="btn btn-primary">💾 Guardar Evaluación</button>
+            {% else %}
+            <button type="submit" class="btn btn-primary" disabled>Selecciona Checklist Primero</button>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle textarea on checkbox
+    document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.addEventListener('change', function() {
+            const ta = this.parentElement.querySelector('textarea');
+            ta.style.display = this.checked ? 'block' : 'none';
+        });
+    });
+});
+</script>
+{% endblock %}
+

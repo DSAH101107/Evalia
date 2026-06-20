@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const fichaId = {{ ficha.id }};
+    const faseSelect = document.getElementById('filtro_fase');
+    const resultadosDiv = document.getElementById('resultados_competencias');
+    const urlBase = "{% url 'api_competencias_por_fase_ficha' %}";
+    const urlDetalleBase = "{% url 'detalle_competencia' 0 %}".replace('/0/', '/');
+    const urlListaComp = "{% url 'lista_competencias' %}";
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    if (!faseSelect) return;
+
+    faseSelect.addEventListener('change', function () {
+        const faseId = this.value;
+        if (!faseId) {
+            resultadosDiv.innerHTML = '';
+            return;
+        }
+        fetch(urlBase + '?fase=' + encodeURIComponent(faseId) + '&ficha=' + encodeURIComponent(fichaId))
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                const comps = data.competencias || [];
+                if (!comps.length) {
+                    resultadosDiv.innerHTML = '<p style="color:#888;">No hay competencias para esta fase en esta ficha.</p>';
+                    return;
+                }
+                let html = '<table class="data-table"><thead><tr>'
+                          + '<th>Código</th><th>Nombre</th><th>Descripción</th><th>GAES</th><th>Trimestre</th><th>Estado</th><th>Acciones</th>'
+                          + '</tr></thead><tbody>';
+                comps.forEach(function (c) {
+                    html += '<tr>'
+                         + '<td>' + c.codigo + '</td>'
+                         + '<td>' + c.nombre + '</td>'
+                         + '<td>—</td>'
+                         + '<td>—</td>'
+                         + '<td>—</td>'
+                         + '<td>' + (c.activo ? 'Sí' : 'No') + '</td>'
+                         + '<td>'
+                         + '<a href="' + urlDetalleBase + c.id + '/" class="btn btn-outline" style="font-size:0.8rem; padding:0.2rem 0.6rem;">Ver</a> '
+                         + (c.activo
+                             ? '<a href="' + urlListaComp + '?search=' + c.codigo + '" class="btn btn-outline" style="font-size:0.8rem; padding:0.2rem 0.6rem; background:#fff3cd;">📋 Usar para asignar</a>'
+                             : '')
+                         + '</td>'
+                         + '</tr>';
+                });
+                html += '</tbody></table>';
+                resultadosDiv.innerHTML = html;
+            })
+            .catch(function () {
+                resultadosDiv.innerHTML = '<p style="color:#c0392b;">Error al cargar competencias.</p>';
+            });
+    });
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'dashboard_admin' %}" class="btn btn-outline">🏠 Volver al Panel</a>
+    <a href="{% url 'editar_ficha' ficha.pk %}" class="btn btn-outline">✏️ Editar</a>
+    {% if ficha.instructor %}
+    <a href="{% url 'enviar_invitacion_ficha' ficha.pk %}" class="btn btn-primary">📧 Enviar Invitación</a>
+    {% endif %}
+</div>
+
+<h1>Ficha {{ ficha.numero }}</h1>
+
+<div class="card">
+    <h2 style="margin-top:0;">Información General</h2>
+    <table class="data-table">
+        <tbody>
+            <tr><th style="width:200px;">Número</th><td>{{ ficha.numero }}</td></tr>
+            <tr><th>Programa</th><td>{{ ficha.programa|default:"—" }}</td></tr>
+            <tr><th>Jornada</th><td>{{ ficha.get_jornada_display }}</td></tr>
+            <tr><th>GAES</th>
+                <td>
+                    {% if ficha.gaes %}
+                    <a href="{% url 'ver_gaes_ficha' ficha.pk %}" class="btn btn-outline btn-sm" style="margin-left: 0.5rem;">Ver</a>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr><th>Trimestre</th><td>{{ ficha.trimestre|default:"Sin asignar" }}</td></tr>
+            <tr><th>Instructor</th><td>{{ ficha.instructor|default:"—" }}</td></tr>
+            <tr><th>Estado</th><td>{{ ficha.get_estado_display }}</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<br>
+
+<div class="card">
+    <h2 style="margin-top:0;">Competencias agrupadas por Fase</h2>
+
+    <div style="margin-bottom:1rem;">
+        <a href="{% url 'crear_competencia' %}?ficha={{ ficha.pk }}" class="btn btn-primary">➕ Crear Competencia para esta Ficha</a>
+    </div>
+
+    {# Selector de fase para buscar competencias existentes #}
+    <div style="margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem;">
+        <label for="filtro_fase" style="font-weight:600;">Filtrar por fase:</label>
+        <select id="filtro_fase" class="form-select" style="max-width:200px;">
+            <option value="">-- Todas las fases --</option>
+            {% for fase in fases_disponibles %}
+            <option value="{{ fase.id }}">Fase {{ fase.numero }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div id="resultados_competencias"></div>
+
+    {% if competencias_agrupadas %}
+        {% for fnum, competencias in competencias_agrupadas %}
+        <h3 style="margin-top:1.5rem; border-bottom:2px solid #4A6FA5; padding-bottom:0.3rem;">
+            Fase {{ fnum }}
+        </h3>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Nombre</th>
+                    <th>Descripción</th>
+                    <th>GAES</th>
+                    <th>Trimestre</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for comp in competencias %}
+                <tr>
+                    <td>{{ comp.codigo }}</td>
+                    <td>{{ comp.nombre }}</td>
+                    <td>{{ comp.descripcion|default:"—" }}</td>
+                    <td>{{ comp.gaes|default:"—" }}</td>
+                    <td>{{ comp.trimestre|default:"—" }}</td>
+                    <td>{{ comp.activo|yesno:"Sí,No" }}</td>
+                    <td>
+                        <a href="{% url 'detalle_competencia' comp.pk %}" class="btn btn-outline" style="font-size:0.8rem; padding:0.2rem 0.6rem;">Ver</a>
+                        <a href="{% url 'editar_competencia' comp.pk %}" class="btn btn-primary" style="font-size:0.8rem; padding:0.2rem 0.6rem;">Editar</a>
+                        <form action="{% url 'eliminar_competencia' comp.pk %}" method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger" style="font-size:0.8rem; padding:0.2rem 0.6rem;" onclick="return confirm('¿Eliminar la competencia {{ comp.codigo }}?')">Eliminar</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endfor %}
+    {% else %}
+    <p style="color:#888;">Esta ficha no tiene competencias registradas.</p>
+    {% endif %}
+</div>
+{% endblock %}

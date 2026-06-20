@@ -1,0 +1,519 @@
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseForbidden, JsonResponse
+from django.db.models import Count
+from django.views.decorators.http import require_http_methods
+from django.contrib import messages
+import json
+from .models import Ficha
+from apps.evaluacion.models import Aprendiz
+
+@login_required
+def lista_fichas(request):
+    """Lista básica de fichas."""
+    fichas = Ficha.objects.all().order_by('numero')
+    return render(request, 'fichas/lista_fichas.html', {
+        'fichas': fichas
+    })
+
+@login_required
+def lista_fichas_con_aprendices(request):
+    """Lista de fichas con el conteo de aprendices para cada una (solo para administradores)."""
+    if request.user.rol != 'administrador':
+        return HttpResponseForbidden('No tienes acceso a esta sección')
+    
+    fichas = Ficha.objects.annotate(
+        num_aprendices=Count('aprendices', distinct=True)
+    ).order_by('numero')
+    
+    return render(request, 'fichas/lista_fichas_con_aprendices.html', {
+        'fichas': fichas
+    })
+
+@login_required
+def aprendices_por_ficha(request, ficha_id):
+    """Lista de aprendices pertenecientes a una ficha específica (solo para administradores)."""
+    print(f"DEBUG: aprendices_por_ficha called with ficha_id={ficha_id}, user={request.user}, rol={getattr(request.user, 'rol', 'No rol')}")
+    
+    if request.user.rol != 'administrador':
+        print(f"DEBUG: Permission denied. User rol is {request.user.rol}")
+        return HttpResponseForbidden('No tienes acceso a esta sección')
+    
+    ficha = get_object_or_404(Ficha, id=ficha_id)
+    print(f"DEBUG: Found ficha: {ficha}")
+    
+    # Let's also check what's in the database directly
+    all_aprendices = Aprendiz.objects.all()
+    print(f"DEBUG: Total aprendices in DB: {all_aprendices.count()}")
+    
+    aprendices_with_ficha = Aprendiz.objects.filter(ficha__isnull=False)
+    print(f"DEBUG: Aprendices with ficha set: {aprendices_with_ficha.count()}")
+    
+    aprendices_for_this_ficha = Aprendiz.objects.filter(ficha=ficha)
+    print(f"DEBUG: Aprendices for ficha {ficha.id}: {aprendices_for_this_ficha.count()}")
+    
+    for i, aprendiz in enumerate(aprendices_for_this_ficha):
+        print(f"DEBUG: Aprendiz {i+1}: {aprendiz.nombres} {aprendiz.apellidos}, ficha={aprendiz.ficha}")
+    
+    aprendices = Aprendiz.objects.filter(ficha=ficha).select_related('ficha', 'gaes', 'fase', 'usuario')
+    print(f"DEBUG: Query returned {aprendices.count()} aprendices")
+    
+    for i, aprendiz in enumerate(aprendices):
+        print(f"DEBUG: Aprendiz {i+1}: {aprendiz.nombres} {aprendiz.apellidos}, ficha={aprendiz.ficha}")
+    
+    # Also add to context for debugging in template
+    context = {
+        'ficha': ficha,
+        'aprendices': aprendices,
+        'debug_count': aprendices.count()
+    }
+    
+    print(f"DEBUG: Rendering template with context")
+    return render(request, 'fichas/aprendices_por_ficha.html', context)
+
+@login_required
+def crear_ficha(request):
+    """Crear una nueva ficha."""
+    if request.user.rol != 'administrador':
+        return HttpResponseForbidden('No tienes acceso a esta sección')
+    
+    if request.method == 'POST':
+        # Procesar el formulario
+        numero = request.POST.get('numero', '').strip()
+        programa = request.POST.get('programa', '').strip()
+        jornada = request.POST.get('jornada', 'mañana')
+        gaes_cantidad = request.POST.get('gaes_cantidad', '1')
+        trimestre_id = request.POST.get('trimestre')
+        instructor_id = request.POST.get('instructor')
+        
+        # Validaciones básicas
+        if not numero:
+            messages.error(request, 'El número de ficha es requerido.')
+            return redirect('crear_ficha')
+        
+        # Verificar si el número ya existe
+        if Ficha.objects.filter(numero=numero).exists():
+            messages.error(request, f'Ya existe una ficha con el número {numero}.')
+            return redirect('crear_ficha')
+        
+        try:
+            gaes_cantidad = int(gaes_cantidad)
+            if gaes_cantidad < 1 or gaes_cantidad > 10:
+                raise ValueError()
+        except ValueError:
+            messages.error(request, 'La cantidad de GAES debe estar entre 1 y 10.')
+            return redirect('crear_ficha')
+        
+        # Obtener trimestre e instructor si se seleccionaron
+        trimestre = None
+        if trimestre_id:
+            try:
+                trimestre = Trimestre.objects.get(id=trimestre_id)
+            except Trimestre.DoesNotExist:
+                pass  # Ignorar si no existe, se dejará como None
+        
+        instructor = None
+        if instructor_id:
+            try:
+                instructor = Usuario.objects.get(id=instructor_id, rol='instructor')
+            except Usuario.DoesNotExist:
+                pass  # Ignorar si no existe, se dejará como None
+        
+        # Crear la ficha
+        ficha = Ficha.objects.create(
+            numero=numero,
+            programa=programa,
+            jornada=jornada,
+            trimestre=trimestre,
+            instructor=instructor,
+            estado='activo'
+        )
+        
+        # Crear las GAES solicitadas
+        gaes_creadas = []
+        for i in range(gaes_cantidad):
+            gaes = GAES.objects.create(
+                nombre=f"GAES {i+1:02d} de {numero}",
+                descripcion=f"GAES generada automáticamente para la ficha {numero}",
+                ficha=ficha,
+                activo=True
+            )
+            gaes_creadas.append(gaes)
+        
+        # Establecer la primera GAES creada como la GAES principal de la ficha
+        if gaes_creadas:
+            ficha.gaes = gaes_creadas[0]
+            ficha.save()
+        
+        messages.success(
+            request, 
+            f'Ficha {numero} creada exitosamente con {gaes_cantidad} GAES.'
+        )
+        return redirect('detalle_ficha', pk=ficha.pk)
+    
+    else:
+        # GET request - show form with data
+        from apps.evaluacion.models import Trimestre
+        from apps.usuarios.models import Usuario
+        
+        trimestres = Trimestre.objects.filter(activo=True).order_by('-anio', 'numero')
+        instructores = Usuario.objects.filter(rol='instructor').order_by('username')
+        
+        # Calculate next ficha number (simple approach)
+        from .models import Ficha
+        last_ficha = Ficha.objects.order_by('-numero').first()
+        next_ficha_num = int(last_ficha.numero) + 1 if last_ficha and last_ficha.numero.isdigit() else 1
+        next_ficha = str(next_ficha_num).zfill(5)  # Pad with zeros to 5 digits
+        
+        return render(request, 'fichas/crear_ficha.html', {
+            'trimestres': trimestres,
+            'instructores': instructores,
+            'next_ficha': next_ficha
+        })
+
+@login_required
+def detalle_ficha(request, pk):
+    """Detalle de una ficha."""
+    ficha = get_object_or_404(Ficha, pk=pk)
+    return render(request, 'fichas/detalle_ficha.html', {
+        'ficha': ficha
+    })
+
+@login_required
+def editar_ficha(request, pk):
+    """Editar una ficha existente."""
+    if request.user.rol != 'administrador':
+        return HttpResponseForbidden('No tienes acceso a esta sección')
+    
+    ficha = get_object_or_404(Ficha, pk=pk)
+    if request.method == 'POST':
+        # Procesar el formulario
+        numero = request.POST.get('numero', '').strip()
+        programa = request.POST.get('programa', '').strip()
+        jornada = request.POST.get('jornada', 'mañana')
+        gaes_id = request.POST.get('gaes')
+        trimestre_id = request.POST.get('trimestre')
+        instructor_id = request.POST.get('instructor')
+        
+        # Validaciones básicas
+        if not numero:
+            messages.error(request, 'El número de ficha es requerido.')
+            return redirect('editar_ficha', pk=pk)
+        
+        # Verificar si el número ya existe en otra ficha
+        if Ficha.objects.filter(numero=numero).exclude(pk=pk).exists():
+            messages.error(request, f'Ya existe otra ficha con el número {numero}.')
+            return redirect('editar_ficha', pk=pk)
+        
+        # Obtener objetos relacionados
+        gaes = None
+        if gaes_id:
+            try:
+                gaes = GAES.objects.get(id=gaes_id)
+            except GAES.DoesNotExist:
+                pass  # Ignorar si no existe, se dejará como None
+        
+        trimestre = None
+        if trimestre_id:
+            try:
+                trimestre = Trimestre.objects.get(id=trimestre_id)
+            except Trimestre.DoesNotExist:
+                pass  # Ignorar si no existe, se dejará como None
+        
+        instructor = None
+        if instructor_id:
+            try:
+                instructor = Usuario.objects.get(id=instructor_id, rol='instructor')
+            except Usuario.DoesNotExist:
+                pass  # Ignorar si no existe, se dejará como None
+        
+        # Actualizar la ficha
+        ficha.numero = numero
+        ficha.programa = programa
+        ficha.jornada = jornada
+        ficha.gaes = gaes
+        ficha.trimestre = trimestre
+        ficha.instructor = instructor
+        ficha.save()
+        
+        messages.success(request, f'Ficha {numero} actualizada exitosamente.')
+        return redirect('detalle_ficha', pk=pk)
+    else:
+        # GET request - show form with data
+        from apps.evaluacion.models import Trimestre, GAES
+        from apps.usuarios.models import Usuario
+        
+        trimestres = Trimestre.objects.filter(activo=True).order_by('-anio', 'numero')
+        gaes_qs = GAES.objects.all().order_by('nombre')
+        instructores = Usuario.objects.filter(rol='instructor').order_by('username')
+        
+        return render(request, 'fichas/editar_ficha.html', {
+            'ficha': ficha,
+            'trimestres': trimestres,
+            'gaes': gaes_qs,
+            'instructores': instructores
+        })
+
+@login_required
+def crear_ficha(request):
+    """Crear una nueva ficha."""
+    if request.user.rol != 'administrador':
+        return HttpResponseForbidden('No tienes acceso a esta sección')
+    
+    if request.method == 'POST':
+        # Procesar el formulario
+        numero = request.POST.get('numero', '').strip()
+        programa = request.POST.get('programa', '').strip()
+        jornada = request.POST.get('jornada', 'mañana')
+        gaes_cantidad = request.POST.get('gaes_cantidad', '1')
+        trimestre_id = request.POST.get('trimestre')
+        instructor_id = request.POST.get('instructor')
+        
+        # Validaciones básicas
+        if not numero:
+            messages.error(request, 'El número de ficha es requerido.')
+            return redirect('crear_ficha')
+        
+        # Verificar si el número ya existe
+        if Ficha.objects.filter(numero=numero).exists():
+            messages.error(request, f'Ya existe una ficha con el número {numero}.')
+            return redirect('crear_ficha')
+        
+        try:
+            gaes_cantidad = int(gaes_cantidad)
+            if gaes_cantidad < 1 or gaes_cantidad > 10:
+                raise ValueError()
+        except ValueError:
+            messages.error(request, 'La cantidad de GAES debe estar entre 1 y 10.')
+            return redirect('crear_ficha')
+        
+        # Obtener trimestre e instructor si se seleccionaron
+        trimestre = None
+        if trimestre_id:
+            try:
+                trimestre = Trimestre.objects.get(id=trimestre_id)
+            except Trimestre.DoesNotExist:
+                pass  # Ignorar si no existe, se dejará como None
+        
+        instructor = None
+        if instructor_id:
+            try:
+                instructor = Usuario.objects.get(id=instructor_id, rol='instructor')
+            except Usuario.DoesNotExist:
+                pass  # Ignorar si no existe, se dejará como None
+        
+        # Crear la ficha
+        ficha = Ficha.objects.create(
+            numero=numero,
+            programa=programa,
+            jornada=jornada,
+            trimestre=trimestre,
+            instructor=instructor,
+            estado='activo'
+        )
+        
+        # Crear las GAES solicitadas
+        gaes_creadas = []
+        for i in range(gaes_cantidad):
+            gaes = GAES.objects.create(
+                nombre=f"GAES {i+1:02d} de {numero}",
+                descripcion=f"GAES generada automáticamente para la ficha {numero}",
+                ficha=ficha,
+                activo=True
+            )
+            gaes_creadas.append(gaes)
+        
+        # Establecer la primera GAES creada como la GAES principal de la ficha
+        if gaes_creadas:
+            ficha.gaes = gaes_creadas[0]
+            ficha.save()
+        
+        messages.success(
+            request, 
+            f'Ficha {numero} creada exitosamente con {gaes_cantidad} GAES.'
+        )
+        return redirect('detalle_ficha', pk=ficha.pk)
+    
+    else:
+        # GET request - show form with data
+        from apps.evaluacion.models import Trimestre
+        from apps.usuarios.models import Usuario
+        
+        trimestres = Trimestre.objects.filter(activo=True).order_by('-anio', 'numero')
+        instructores = Usuario.objects.filter(rol='instructor').order_by('username')
+        
+        # Calculate next ficha number (simple approach)
+        last_ficha = Ficha.objects.order_by('-numero').first()
+        next_ficha_num = int(last_ficha.numero) + 1 if last_ficha and last_ficha.numero.isdigit() else 1
+        next_ficha = str(next_ficha_num).zfill(5)  # Pad with zeros to 5 digits
+        
+        return render(request, 'fichas/crear_ficha.html', {
+            'trimestres': trimestres,
+            'instructores': instructores,
+            'next_ficha': next_ficha
+        })
+    
+
+@login_required
+def editar_ficha(request, pk):
+    """Editar una ficha existente."""
+    if request.user.rol != 'administrador':
+        return HttpResponseForbidden('No tienes acceso a esta sección')
+    
+    ficha = get_object_or_404(Ficha, pk=pk)
+    if request.method == 'POST':
+        # Procesar el formulario
+        numero = request.POST.get('numero', '').strip()
+        programa = request.POST.get('programa', '').strip()
+        jornada = request.POST.get('jornada', 'mañana')
+        gaes_id = request.POST.get('gaes')
+        trimestre_id = request.POST.get('trimestre')
+        instructor_id = request.POST.get('instructor')
+        
+        # Validaciones básicas
+        if not numero:
+            messages.error(request, 'El número de ficha es requerido.')
+            return redirect('editar_ficha', pk=pk)
+        
+        # Verificar si el número ya existe en otra ficha
+        if Ficha.objects.filter(numero=numero).exclude(pk=pk).exists():
+            messages.error(request, f'Ya existe otra ficha con el número {numero}.')
+            return redirect('editar_ficha', pk=pk)
+        
+        # Obtener objetos relacionados
+        gaes = None
+        if gaes_id:
+            try:
+                gaes = GAES.objects.get(id=gaes_id)
+            except GAES.DoesNotExist:
+                pass  # Ignorar si no existe, se dejará como None
+        
+        trimestre = None
+        if trimestre_id:
+            try:
+                trimestre = Trimestre.objects.get(id=trimestre_id)
+            except Trimestre.DoesNotExist:
+                pass  # Ignorar si no existe, se dejará como None
+        
+        instructor = None
+        if instructor_id:
+            try:
+                instructor = Usuario.objects.get(id=instructor_id, rol='instructor')
+            except Usuario.DoesNotExist:
+                pass  # Ignorar si no existe, se dejará como None
+        
+        # Actualizar la ficha
+        ficha.numero = numero
+        ficha.programa = programa
+        ficha.jornada = jornada
+        ficha.gaes = gaes
+        ficha.trimestre = trimestre
+        ficha.instructor = instructor
+        ficha.save()
+        
+        messages.success(request, f'Ficha {numero} actualizada exitosamente.')
+        return redirect('detalle_ficha', pk=pk)
+    else:
+        # GET request - show form with data
+        from apps.evaluacion.models import Trimestre, GAES
+        from apps.usuarios.models import Usuario
+        
+        trimestres = Trimestre.objects.filter(activo=True).order_by('-anio', 'numero')
+        gaes_qs = GAES.objects.all().order_by('nombre')
+        instructores = Usuario.objects.filter(rol='instructor').order_by('username')
+        
+        return render(request, 'fichas/editar_ficha.html', {
+            'ficha': ficha,
+            'trimestres': trimestres,
+            'gaes': gaes_qs,
+            'instructores': instructores
+        })
+
+
+@login_required
+def eliminar_ficha(request, pk):
+    """Eliminar una ficha."""
+    if request.user.rol != 'administrador':
+        return HttpResponseForbidden('No tienes acceso a esta sección')
+
+    ficha = get_object_or_404(Ficha, pk=pk)
+    if request.method == 'POST':
+        ficha.delete()
+        messages.success(request, 'Ficha eliminada exitosamente.')
+        return redirect('lista_fichas')
+    # TODO: Render confirmation template
+    return render(request, 'fichas/eliminar_ficha.html', {
+        'ficha': ficha
+    })
+
+
+@login_required
+def actualizar_gaes_ficha(request, pk):
+    """Actualizar los GAES de una ficha."""
+    if request.user.rol != 'administrador':
+        return HttpResponseForbidden('No tienes acceso a esta sección')
+    
+    ficha = get_object_or_404(Ficha, pk=pk)
+    if request.method == 'POST':
+        # Procesar el formulario para actualizar GAES
+        accion = request.POST.get('accion')
+        
+        if accion == 'cambiar_principal':
+            # Cambiar la GAES principal de la ficha
+            gaes_id = request.POST.get('gaes_principal')
+            if gaes_id:
+                try:
+                    gaes = GAES.objects.get(id=gaes_id, ficha=ficha)
+                    ficha.gaes = gaes
+                    ficha.save()
+                    messages.success(request, 'GAES principal actualizada exitosamente.')
+                except GAES.DoesNotExist:
+                    messages.error(request, 'GAES no válida para esta ficha.')
+            else:
+                # Establecer como None (sin GAES principal)
+                ficha.gaes = None
+                ficha.save()
+                messages.success(request, 'GAES principal eliminada.')
+            return redirect('actualizar_gaes_ficha', pk=pk)
+            
+        elif accion == 'crear_gaes':
+            # Crear una nueva GAES para esta ficha
+            nombre = request.POST.get('nombre_gaes', '').strip()
+            descripcion = request.POST.get('descripcion_gaes', '').strip()
+            
+            if nombre:
+                gaes = GAES.objects.create(
+                    nombre=nombre,
+                    descripcion=descripcion,
+                    ficha=ficha,
+                    activo=True
+                )
+                messages.success(request, f'GAES "{nombre}" creada exitosamente.')
+            else:
+                messages.error(request, 'El nombre de la GAES es requerido.')
+            return redirect('actualizar_gaes_ficha', pk=pk)
+    
+    # GET request - mostrar formulario
+    gaes_list = GAES.objects.filter(ficha=ficha).order_by('nombre')
+    
+    return render(request, 'fichas/actualizar_gaes_ficha.html', {
+        'ficha': ficha,
+        'gaes_list': gaes_list
+    })
+
+
+@login_required
+def api_gaes_por_ficha(request, pk):
+    """API para obtener los GAES de una ficha."""
+    ficha = get_object_or_404(Ficha, pk=pk)
+    # TODO: Implement actual GAES data retrieval
+    gaes_data = []  # Placeholder
+    return JsonResponse({'gaes': gaes_data})
+
+
+@login_required
+def api_integrantes_gaes(request, pk):
+    """API para obtener los integrantes de un GAES."""
+    # TODO: Implement actual integrantes data retrieval
+    integrantes_data = []  # Placeholder
+    return JsonResponse({'integrantes': integrantes_data})

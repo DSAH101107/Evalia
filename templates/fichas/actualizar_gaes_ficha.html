@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Actualizar GAES - Ficha {{ ficha.numero }} - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'detalle_ficha' ficha.pk %}" class="btn btn-outline">← Volver a Ficha</a>
+</div>
+<h1>Actualizar GAES de la Ficha {{ ficha.numero }}</h1>
+
+<div class="card">
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+    
+    <div class="card-header">
+        <h2>GAES Principal Actual</h2>
+        <p>
+            {% if ficha.gaes %}
+                <strong>{{ ficha.gaes.nombre }}</strong> 
+                {% if ficha.gaes.descripcion %} - {{ ficha.gaes.descripcion|truncatechars:50 }}{% endif %}
+            {% else %}
+                <span style="color: #6b7280;">No hay GAES principal asignada</span>
+            {% endif %}
+        </p>
+    </div>
+    
+    <form method="post" style="margin-bottom: 2rem;">
+        {% csrf_token %}
+        <div class="form-row">
+            <div class="form-group">
+                <label for="gaes_principal">Seleccionar GAES Principal:</label>
+                <select id="gaes_principal" name="gaes_principal">
+                    <option value="">-- Ninguna (Sin GAES principal) --</option>
+                    {% for gaes in gaes_list %}
+                    <option value="{{ gaes.id }}" {% if ficha.gaes and ficha.gaes.id == gaes.id %}selected{% endif %}>
+                        {{ gaes.nombre }}{% if gaes.descripcion %} - {{ gaes.descripcion|truncatechars:30 }}{% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+                <small>Seleccione qué GAES será la principal de esta ficha</small>
+            </div>
+            <button type="submit" name="accion" value="cambiar_principal" class="btn btn-primary">
+                Actualizar GAES Principal
+            </button>
+        </div>
+    </form>
+    
+    {% if gaes_list %}
+    <div class="card-header">
+        <h2>Todas las GAES de esta Ficha</h2>
+        <p><strong>Total:</strong> {{ gaes_list.count }} GAES</p>
+    </div>
+    
+    <div class="card">
+        {% if gaes_list %}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Descripción</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for gaes in gaes_list %}
+                <tr>
+                    <td><strong>{{ gaes.nombre }}</strong></td>
+                    <td>{{ gaes.descripcion|default:"—" }}</td>
+                    <td>
+                        <span class="badge" style="background: {% if gaes.activo %}#10B981{% else %}#EF4444{% endif %}; color: white;">
+                            {% if gaes.activo %}Activo{% else %}Inactivo{% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        {% if gaes.id != ficha.gaes_id %}
+                        <form method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="accion" value="cambiar_principal">
+                            <input type="hidden" name="gaes_principal" value="{{ gaes.id }}">
+                            <button type="submit" class="btn btn-secondary btn-sm" 
+                                    onclick="return confirm('¿Establecer "{{ gaes.nombre }}" como GAES principal?')">
+                                ✓ Hacer Principal
+                            </button>
+                        </form>
+                        {% else %}
+                        <span class="btn btn-outline btn-sm" style="cursor:default;">Principal</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty-state">No hay GAES registradas para esta ficha.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    <div class="card-header">
+        <h2>Crear Nueva GAES</h2>
+    </div>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-row">
+            <div class="form-group">
+                <label for="nombre_gaes">Nombre de la GAES:</label>
+                <input type="text" id="nombre_gaes" name="nombre_gaes" required 
+                       placeholder="Ej: GAES 01 - Desarrollo de Aplicaciones">
+            </div>
+            <div class="form-group">
+                <label for="descripcion_gaes">Descripción (opcional):</label>
+                <textarea id="descripcion_gaes" name="descripcion_gaes" rows="3" 
+                          placeholder="Descripción detallada de la GAES..."></textarea>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" name="accion" value="crear_gaes" class="btn btn-success">
+                Crear GAES
+            </button>
+            <a href="{% url 'detalle_ficha' ficha.pk %}" class="btn btn-outline">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Aprendices del GAES {{ gaes.nombre }} - Resultados{% endblock %}
+{% block content %}
+<h1>📊 Aprendices del GAES {{ gaes.nombre }}</h1>
+<p class="welcome">Bienvenido, <strong>{{ request.user.get_full_name|default:request.user.username }}</strong></p>
+
+<form method="get" style="margin-bottom: 1rem;">
+    <input type="text" name="search" placeholder="Buscar por nombre o documento" value="{{ search }}" style="padding: 0.5rem; width: 250px;">
+    <button type="submit" class="btn btn-primary">Buscar</button>
+    <a href="{% url 'admin_gaes_aprendices' gaes.id %}" class="btn btn-outline">Limpiar</a>
+</form>
+
+{% if aprendices_data %}
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Aprendiz</th>
+                <th>Documento</th>
+                <th>Ficha</th>
+                <th>Resultado</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in aprendices_data %}
+            <tr style="{% if forloop.counter|divisibleby:2 %}background:#fafafa;{% endif %}">
+                <td>{{ item.aprendiz.nombres }} {{ item.aprendiz.apellidos }}</td>
+                <td>{{ item.aprendiz.documento }}</td>
+                <td>{{ item.aprendiz.ficha.numero }}</td>
+                <td>
+                    {% if item.resultado %}
+                    <span class="badge">
+                        {% if item.resultado.promedio >= 9 %}✅{{ item.resultado.calificacion_final }}
+                        {% elif item.resultado.promedio >= 7 %}🟡{{ item.resultado.calificacion_final }}
+                        {% else %}🔴{{ item.resultado.calificacion_final }}{% endif %}
+                    </span>
+                    {% else %}
+                    Sin resultado
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+    <p style="text-align:center; padding:2rem; color:var(--gris-texto);">📭 No hay aprendices con resultados en este GAES.</p>
+{% endif %}
+{% endblock %}

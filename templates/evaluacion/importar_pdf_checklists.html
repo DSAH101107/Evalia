@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Importar Checklist desde PDF - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'home' %}" class="btn btn-outline">🏠 Volver al inicio</a>
+</div>
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h2>📄 Importar Checklist desde PDF</h2>
+        <a href="{% url 'lista_checklists' %}" class="btn btn-secondary">← Volver</a>
+    </div>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="titulo">Título del Checklist (opcional)</label>
+            <input type="text" id="titulo" name="titulo" placeholder="Se usará 'Checklist importado' si se deja vacío">
+        </div>
+        <div class="form-group">
+            <label for="descripcion">Descripción (opcional)</label>
+            <textarea id="descripcion" name="descripcion" rows="2" placeholder="Descripción del checklist"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="archivo_pdf">Archivo PDF</label>
+            <input type="file" id="archivo_pdf" name="archivo_pdf" accept=".pdf" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Importar PDF</button>
+    </form>
+
+    <div style="margin-top: 1.5rem; padding: 1rem; background: var(--gris-claro); border-radius: 8px;">
+        <p><strong>Formato esperado del PDF:</strong></p>
+        <ul>
+            <li>La tabla debe contener columnas con "criterio", "indicador" o "variable" (case-insensitive)</li>
+            <li>Opcional: columnas "etapa" y "comentarios"</li>
+            <li>Se detectará automáticamente la tabla principal con criterios</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

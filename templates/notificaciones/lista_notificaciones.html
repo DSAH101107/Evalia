@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Notificaciones - Sistema SENA{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+        <h2>🔔 Notificaciones</h2>
+        <div>
+            <strong id="no-leidas-badge" style="{% if no_leidas %}background:#EF4444;color:white;padding:0.25rem 0.75rem;border-radius:999px;font-size:0.85rem;{% else %}color:#888;{% endif %}">
+                {% if no_leidas %}{{ no_leidas }} sin leer{% else %}Sin notificaciones nuevas{% endif %}
+            </strong>
+        </div>
+    </div>
+
+    {% if notificaciones %}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:5%">#</th>
+                    <th>Tipo</th>
+                    <th>Título</th>
+                    <th>Mensaje</th>
+                    <th style="width:12%">Estado</th>
+                    <th style="width:14%">Fecha</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for notif in notificaciones %}
+            <tr style="{% if notif.estado == 'pendiente' %}background:#fffbea;{% endif %}">
+                <td>{{ forloop.counter }}</td>
+                <td>
+                    {% if notif.tipo == 'aceptacion' %}✅{% elif notif.tipo == 'rechazo' %}❌{% elif notif.tipo == 'evaluacion' %}📝{% elif notif.tipo == 'resultado' %}📊{% else %}🔔{% endif %}
+                    <span class="badge">{{ notif.get_tipo_display }}</span>
+                </td>
+                <td><strong>{{ notif.titulo }}</strong></td>
+                <td style="max-width:350px;">{{ notif.mensaje|truncatewords:20 }}</td>
+                <td>
+                    {% if notif.estado == 'pendiente' %}
+                        <span class="badge" style="background:#F59E0B;color:white;">Pendiente</span>
+                    {% elif notif.estado == 'leida' %}
+                        <span class="badge" style="background:#10B981;color:white;">Leída</span>
+                    {% else %}
+                        <span class="badge" style="background:#9CA3AF;color:white;">Archivada</span>
+                    {% endif %}
+                </td>
+                <td style="white-space:nowrap;">{{ notif.fecha_envio|date:"d/m/Y H:i" }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="text-align:center; padding:2rem; color:var(--gris-texto);">📭 No tienes notificaciones aún.</p>
+    {% endif %}
+</div>
+{% endblock %}

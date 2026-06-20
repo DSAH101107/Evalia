@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Enviar Invitación - {{ instructor.username }}{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'home' %}" class="btn btn-outline">🏠 Volver al inicio</a>
+</div>
+<h1>Invitar a {{ instructor.username }} como Jurado</h1>
+
+<div class="card">
+    <p><strong>Email:</strong> {{ instructor.email }}</p>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label>Seleccionar Jurados</label>
+            <button type="button" class="btn btn-outline" onclick="toggleJurados()">+ Agregar Jurados</button>
+            <span id="jurados-count" style="margin-left: 1rem; color: #666;"></span>
+        </div>
+        
+        <div id="jurados-section" style="display: none;">
+            <div class="form-group">
+                <label>Instructores disponibles (misma modalidad)</label>
+                <div style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+                    {% for jurado in jurados %}
+                    <div style="margin-bottom: 0.5rem; padding: 0.25rem; display: flex; align-items: center;">
+                        <input type="checkbox" id="jurado-{{ jurado.id }}" name="jurados" value="{{ jurado.id }}" onchange="updateCount()" style="margin-right: 0.5rem;">
+                        <label for="jurado-{{ jurado.id }}" style="cursor: pointer; margin: 0;">
+                            {{ jurado.username }} - {{ jurado.email }}
+                        </label>
+                    </div>
+                    {% empty %}
+                    <p style="color: #666;">No hay instructores disponibles</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="fecha_evaluacion">Fecha de evaluación *</label>
+            <input type="date" id="fecha_evaluacion" name="fecha_evaluacion" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="hora_evaluacion">Hora de evaluación</label>
+            <input type="time" id="hora_evaluacion" name="hora_evaluacion">
+        </div>
+        
+        <div class="form-group">
+            <label for="mensaje">Mensaje personalizado (opcional)</label>
+            <textarea id="mensaje" name="mensaje" rows="4" placeholder="¡Hola! Te invitamos a ser jurado en la sustentación..."></textarea>
+        </div>
+        
+        <div class="card">
+            <h3>Preview del Email:</h3>
+            <p><strong>Asunto:</strong> Invitación para ser Jurado - Sistema SENA</p>
+            <p><strong>Links:</strong></p>
+            <ul>
+                <li><strong>Aceptar:</strong> <code>{% url 'aceptar_invitacion' 0 %}</code> (se reemplazará con ID real)</li>
+                <li><strong>Rechazar:</strong> <code>{% url 'rechazar_invitacion' 0 %}</code></li>
+            </ul>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Enviar Invitación por Email</button>
+            <a href="{% url 'lista_instructores' %}" class="btn btn-outline">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+<script>
+function toggleJurados() {
+    const section = document.getElementById('jurados-section');
+    if (section.style.display === 'none') {
+        section.style.display = 'block';
+        updateCount();
+    } else {
+        section.style.display = 'none';
+    }
+}
+
+function updateCount() {
+    const checkboxes = document.querySelectorAll('input[name="jurados"]:checked');
+    const count = checkboxes.length;
+    document.getElementById('jurados-count').textContent = count > 0 ? `${count} jurado(s) seleccionado(s)` : '';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    updateCount();
+});
+</script>
+{% endblock %}

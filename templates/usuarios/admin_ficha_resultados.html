@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Fichas con Resultados - Panel Admin{% endblock %}
+{% block content %}
+<h1>📊 Fichas con Resultados</h1>
+<p class="welcome">Bienvenido, <strong>{{ request.user.get_full_name|default:request.user.username }}</strong></p>
+
+<form method="get" style="margin-bottom: 1rem;">
+    <input type="text" name="search" placeholder="Buscar por número de ficha, programa o GAES" value="{{ search }}" style="padding: 0.5rem; width: 250px;">
+    <button type="submit" class="btn btn-primary">Buscar</button>
+    <a href="{% url 'admin_ficha_resultados' %}" class="btn btn-outline">Limpiar</a>
+</form>
+
+{% if fichas %}
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Ficha</th>
+                <th>Programa</th>
+                <th>GAES</th>
+                <th>Aprendices</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ficha in fichas %}
+            <tr style="{% if forloop.counter|divisibleby:2 %}background:#fafafa;{% endif %}">
+                <td>{{ ficha.numero }}</td>
+                <td>{{ ficha.programa }}</td>
+                <td>{{ ficha.gaes.nombre|default:"—" }}</td>
+                <td>{{ ficha.aprendices.count }}</td>
+                <td>
+                    <a href="{% url 'admin_ficha_gaes' ficha.id %}" class="btn btn-outline btn-sm">Resultados</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+    <p style="text-align:center; padding:2rem; color:var(--gris-texto);">📭 No hay fichas con resultados.</p>
+{% endif %}
+{% endblock %}

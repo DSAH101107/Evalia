@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Enviar Invitación a Jurados{% endblock %}
+
+{% block content %}
+<div class="page-layout">
+
+<div class="page-header">
+    <h1>📨 Enviar Invitación a Jurados</h1>
+    <p class="welcome" style="color:rgba(255,255,255,0.85);margin-bottom:0;">
+        Invite instructores como jurados para las sustentaciones
+    </p>
+</div>
+
+<div class="card">
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="ficha">
+                    <span style="font-size:1.2rem;">📁</span> Ficha
+                </label>
+                <select name="ficha" id="ficha" class="form-select" required>
+                    <option value="">Seleccione una ficha</option>
+                    {% for ficha in fichas %}
+                    <option value="{{ ficha.id }}">{{ ficha.numero }} - {{ ficha.programa }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label style="font-weight:600; color:var(--azul-grisaceo); margin-bottom:0.5rem;">
+                <span style="font-size:1.2rem;">👥</span> Seleccionar Jurados
+            </label>
+            <p style="color:var(--gris-texto); font-size:0.875rem; margin:0 0 0.75rem 0;">
+                Seleccione los instructores que serán jurados en la sustentación
+            </p>
+            <button type="button" class="btn btn-outline" data-bs-toggle="modal" data-bs-target="#modalJurados"
+                    style="margin-bottom:0.5rem;">
+                ▼ Agregar Jurados
+            </button>
+            <div id="jurados-seleccionados" style="min-height:3rem; padding:0.75rem; border:2px dashed var(--bordes); border-radius:8px; background:var(--gris-claro);">
+                <span class="text-muted">Ningún jurado seleccionado</span>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="fecha_evaluacion">
+                    <span style="font-size:1.2rem;">📅</span> Fecha de Evaluación
+                </label>
+                <input type="date" name="fecha_evaluacion" id="fecha_evaluacion" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="hora_evaluacion">
+                    <span style="font-size:1.2rem;">🕐</span> Hora de Evaluación
+                </label>
+                <input type="time" name="hora_evaluacion" id="hora_evaluacion" class="form-control">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="mensaje">
+                <span style="font-size:1.2rem;">💬</span> Mensaje (opcional)
+            </label>
+            <textarea name="mensaje" id="mensaje" class="form-control" rows="3" 
+                      placeholder="Mensaje adicional para los jurados..."></textarea>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">✓ Enviar Invitaciones</button>
+            <a href="{% url 'dashboard_admin' %}" class="btn btn-outline">✕ Cancelar</a>
+        </div>
+    </form>
+</div>
+</div>
+
+<div class="modal fade" id="modalJurados" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Seleccionar Jurados</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <input type="text" class="form-control" id="buscarJurado" placeholder="🔍 Buscar instructor...">
+                </div>
+                <div style="max-height: 350px; overflow-y: auto;">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;"></th>
+                                <th>Nombre</th>
+                                <th>Email</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for instructor in instructores %}
+                            <tr class="jurado-item">
+                                <td>
+                                    <input class="form-check-input jurado-checkbox" type="checkbox" 
+                                           value="{{ instructor.id }}" id="jurado_{{ instructor.id }}"
+                                           data-nombre="{{ instructor.get_full_name|default:instructor.username }}">
+                                </td>
+                                <td>
+                                    <label for="jurado_{{ instructor.id }}" style="cursor:pointer; margin:0;">
+                                        {{ instructor.get_full_name|default:instructor.username }}
+                                    </label>
+                                </td>
+                                <td>
+                                    <label for="jurado_{{ instructor.id }}" style="cursor:pointer; margin:0;" class="text-muted">
+                                        {{ instructor.email }}
+                                    </label>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="confirmarJurados">Agregar Seleccionados</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const juradosSeleccionados = [];
+    const container = document.getElementById('jurados-seleccionados');
+    const checkboxes = document.querySelectorAll('.jurado-checkbox');
+    const confirmarBtn = document.getElementById('confirmarJurados');
+    const buscarInput = document.getElementById('buscarJurado');
+    
+    confirmarBtn.addEventListener('click', function() {
+        container.innerHTML = '';
+        juradosSeleccionados.length = 0;
+        
+        checkboxes.forEach(cb => {
+            if (cb.checked) {
+                juradosSeleccionados.push({
+                    id: cb.value,
+                    nombre: cb.dataset.nombre
+                });
+            }
+        });
+        
+        if (juradosSeleccionados.length === 0) {
+            container.innerHTML = '<span class="text-muted">Ningún jurado seleccionado</span>';
+        } else {
+            const header = document.createElement('div');
+            header.innerHTML = '<strong>Jurados seleccionados:</strong>';
+            header.style.marginBottom = '0.5rem';
+            container.appendChild(header);
+            
+            juradosSeleccionados.forEach(j => {
+                const div = document.createElement('span');
+                div.className = 'badge bg-primary me-2 mb-2';
+                div.style.padding = '0.5rem 0.75rem';
+                div.style.fontSize = '0.875rem';
+                div.innerHTML = j.nombre + '<input type="hidden" name="jurados" value="' + j.id + '">';
+                container.appendChild(div);
+            });
+        }
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalJurados'));
+        modal.hide();
+    });
+    
+    buscarInput.addEventListener('input', function() {
+        const term = this.value.toLowerCase();
+        document.querySelectorAll('.jurado-item').forEach(item => {
+            const nombre = item.textContent.toLowerCase();
+            item.style.display = nombre.includes(term) ? '' : 'none';
+        });
+    });
+});
+</script>
+{% endblock %}

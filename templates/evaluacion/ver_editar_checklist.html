@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}{{ checklist.titulo }} - {% if can_edit %}Editar{% else %}Ver{% endif %} Checklist{% endblock %}
+
+{% block extra_css %}
+<style>
+@media print {
+    .no-print { display: none !important; }
+    .print-only { display: block !important; }
+    .print-item-row {
+        display: flex !important;
+        border: 1px solid #ccc !important;
+        border-radius: 4px !important;
+        padding: 10px !important;
+        margin-bottom: 8px !important;
+        page-break-inside: avoid !important;
+    }
+    .print-criterio { flex: 1; font-weight: 500; }
+    .print-checkbox { flex: 0 0 80px; text-align: center; }
+    .print-observaciones { flex: 1; margin-left: 15px; font-size: 0.9em; }
+}
+.print-only { display: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'home' %}" class="btn btn-outline">🏠 Volver al inicio</a>
+    <button type="button" onclick="window.print()" class="btn btn-primary no-print" style="margin-left: 1rem;">🖨️ Imprimir Checklist</button>
+    <a href="{% url 'ver_checklist_limpio' checklist.id %}" class="btn btn-outline" style="margin-left: 1rem;">👁️ Ver limpio</a>
+</div>
+<div class="page-header">
+    <h1>{% if can_edit %}✏️ Editar{% else %}👁️ Ver{% endif %} Checklist: {{ checklist.titulo }}</h1>
+    <p class="subtitle">{{ checklist.descripcion }}</p>
+    <a href="{% url 'lista_checklists' %}" class="btn btn-outline no-print" style="margin-bottom: 1rem;">← Volver a Lista</a>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+
+<div class="card">
+    {% if can_edit %}
+    <form method="post">
+        {% csrf_token %}
+    {% endif %}
+    
+    <h3>Items de la Checklist ({{ items|length }} items)</h3>
+    
+    {% regroup items by competencia as items_por_competencia %}
+    
+    {% for group in items_por_competencia %}
+    <div style="margin-bottom: 2rem;">
+        {% if group.grouper %}
+        <h4 style="color: var(--azul); border-bottom: 2px solid var(--azul); padding-bottom: 0.5rem;">
+            {{ group.grouper.codigo }} - {{ group.grouper.nombre }}
+        </h4>
+        {% else %}
+        <h4 style="color: var(--gris-texto); border-bottom: 1px dashed var(--gris); padding-bottom: 0.5rem;">
+            Criterios generales
+        </h4>
+        {% endif %}
+        
+        {% for item in group.list %}
+        <div style="border: 1px solid var(--bordes); border-radius: 4px; padding: 1rem; margin-bottom: 1rem; background: var(--blanco); margin-left: {% if group.grouper %}1rem{% else %}0{% endif %};">
+            <div style="display: flex; gap: 1rem; align-items: start;">
+                <div style="flex: 1;">
+                    <label style="font-weight: 500;">{{ forloop.parentloop.counter }}.{{ forloop.counter }} Criterio:</label><br>
+                    {% if can_edit %}
+                    <textarea name="criterio_{{ item.id }}" rows="2" style="width: 100%; padding: 0.5rem;" required>{{ item.criterio }}</textarea>
+                    {% else %}
+                    <div style="padding: 0.5rem; background: var(--gris-claro); border-radius: 4px; min-height: 60px;">{{ item.criterio }}</div>
+                    {% endif %}
+                </div>
+                
+                <div style="flex: 0 0 200px;">
+                    <label>Puntaje Máx.:</label><br>
+                    {% if can_edit %}
+                    <input type="number" name="puntaje_maximo_{{ item.id }}" min="1" max="100" step="0.1" value="{{ item.puntaje_maximo }}" style="width: 100px; padding: 0.5rem;">
+                    {% else %}
+                    <span style="font-weight: 500; color: var(--azul); padding: 0.5rem; background: var(--gris-claro); border-radius: 4px;">{{ item.puntaje_maximo }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% empty %}
+    <p style="text-align: center; color: var(--gris-texto);">No hay items en esta checklist.</p>
+    {% endfor %}
+    
+    {% if can_edit %}
+        <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
+            <a href="{% url 'lista_checklists' %}" class="btn btn-outline">Cancelar</a>
+            <button type="submit" class="btn btn-primary">💾 Guardar Cambios</button>
+        </div>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}

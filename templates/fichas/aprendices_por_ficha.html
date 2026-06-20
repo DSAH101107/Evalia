@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Aprendices de la Ficha {{ ficha.numero }} - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+    <a href="{% url 'lista_aprendices' %}" class="btn btn-outline">← Volver a Fichas</a>
+</div>
+
+<h1>👥 Aprendices de la Ficha {{ ficha.numero }}</h1>
+<p class="welcome">Programa: {{ ficha.programa }}</p>
+
+
+
+<div class="card">
+    {% if aprendices %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Documento</th>
+                <th>Nombre Completo</th>
+                <th>Email</th>
+                <th>GAES</th>
+                <th>Fase</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for aprendiz in aprendices %}
+            <tr>
+                <td><strong>{{ aprendiz.documento }}</strong></td>
+                <td>{{ aprendiz.nombres }} {{ aprendiz.apellidos }}</td>
+                <td>{{ aprendiz.email }}</td>
+                <td><span class="badge" style="background: #7C3AED; color: white;">{{ aprendiz.gaes }}</span></td>
+                <td><span class="badge" style="background: #D97706; color: white;">{{ aprendiz.fase }}</span></td>
+                <td>
+                    <span class="badge" style="background: {% if aprendiz.bloqueado %}#EF4444{% else %}#10B981{% endif %}; color: white;">
+                        {% if aprendiz.bloqueado %}🚫 Bloqueado{% else %}✅ Activo{% endif %}
+                    </span>
+                </td>
+                <td>
+                    {% if user.rol == 'administrador' %}
+                    <a href="{% url 'editar_aprendiz' aprendiz.id %}" class="btn btn-secondary btn-sm" style="padding: 0.3rem 0.6rem;">✏️</a>
+                    <a href="#" onclick="bloquearAprendiz({{ aprendiz.id }})" class="btn btn-danger btn-sm" style="padding: 0.3rem 0.6rem;">
+                        {% if aprendiz.bloqueado %}🔓 Desbloquear{% else %}🚫 Bloquear{% endif %}
+                    </a>
+                    <a href="#" onclick="eliminarAprendiz({{ aprendiz.id }}, '{{ aprendiz.nombres }} {{ aprendiz.apellidos }}')" class="btn btn-danger btn-sm" style="padding: 0.3rem 0.6rem;">🗑️</a>
+                    {% else %}
+                    {% if user.rol == 'jurado' %}
+                    <a href="{% url 'iniciar_evaluacion' aprendiz.id %}" class="btn btn-primary btn-sm">📝 Evaluar</a>
+                    {% else %}
+                    <a href="{% url 'iniciar_evaluacion' aprendiz.id %}" class="btn btn-secondary btn-sm">Evaluar</a>
+                    {% endif %}
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">No hay aprendices registrados en esta ficha.</p>
+    {% endif %}
+</div>
+{% endblock %}

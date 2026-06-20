@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Asignar GAES a Aprendices Importados - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'home' %}" class="btn btn-outline">🏠 Volver al inicio</a>
+    <a href="{% url 'importar_excel' %}" class="btn btn-outline">← Subir otro archivo</a>
+</div>
+<h1>Asignar GAES a Aprendices Importados</h1>
+<p>Seleccione hasta 4 aprendices para cada GAES. Cada aprendiz solo puede asignarse a un GAES.</p>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    
+    <div class="form-group">
+        <label>GAES Disponibles</label>
+        {% for gaes in gaes_list %}
+        <div class="mb-3 p-3 border rounded">
+            <h5>{{ gaes.nombre }}</h5>
+            <select name="gaes_{{ gaes.id }}" class="form-select" multiple size="5">
+                {% for aprendiz in aprendices_no_asignados %}
+                <option value="{{ aprendiz.id }}">{{ aprendiz.documento }} - {{ aprendiz.nombres }} {{ aprendiz.apellidos }}</option>
+                {% endfor %}
+            </select>
+            <small class="text-muted">Máximo 4 aprendices por GAES</small>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Guardar Asignaciones</button>
+        <a href="{% url 'importar_excel' %}" class="btn btn-outline">Cancelar</a>
+    </div>
+</form>
+{% endblock %}

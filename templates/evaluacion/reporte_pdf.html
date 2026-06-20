@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Reporte PDF - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'home' %}" class="btn btn-outline">🏠 Volver al inicio</a>
+</div>
+<h1>Generar Reporte PDF</h1>
+
+<div class="card">
+    <p>Descargar el reporte de evaluación en formato PDF.</p>
+    
+    {% if resultado %}
+    <div class="report-preview">
+        <h3>Vista Previa del Reporte</h3>
+        <p><strong>Aprendiz:</strong> {{ resultado.aprendiz.nombres }} {{ resultado.aprendiz.apellidos }}</p>
+        <p><strong>Documento:</strong> {{ resultado.aprendiz.documento }}</p>
+        <p><strong>Programa:</strong> {{ resultado.aprendiz.programa }}</p>
+        <p><strong>Calificación:</strong> {{ resultado.calificacion_final }}</p>
+    </div>
+    {% endif %}
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Descargar PDF</button>
+            <a href="{% url 'lista_resultados' %}" class="btn btn-outline">Volver</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

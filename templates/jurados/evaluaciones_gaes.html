@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Evaluaciones del GAES {{ gaes.nombre }} - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'dashboard_jurado' %}" class="btn btn-outline">🏠 Volver al Dashboard</a>
+</div>
+
+<div class="page-header">
+    <h1>📝 Evaluaciones del GAES: {{ gaes.nombre }}</h1>
+    <p class="subtitle">Haz clic en "Evaluar" para calificar a cada aprendiz</p>
+</div>
+
+<div class="card">
+    {% if evaluaciones %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Aprendiz</th>
+                <th>Checklist</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for evaluacion in evaluaciones %}
+            <tr>
+                <td>{{ evaluacion.aprendiz.nombres }} {{ evaluacion.aprendiz.apellidos }}</td>
+                <td>{{ evaluacion.checklist.titulo }}</td>
+                <td>
+                    {% if evaluacion.estado == 'completada' %}
+                        <span class="badge badge-success">Completada</span>
+                    {% elif evaluacion.estado == 'pendiente' %}
+                        <span class="badge badge-warning">Pendiente</span>
+                    {% else %}
+                        <span class="badge">{{ evaluacion.estado }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{% url 'evaluar_aprendiz' evaluacion.id %}" class="btn btn-primary btn-sm">📝 Evaluar</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">No hay evaluaciones creadas para este GAES.</p>
+    {% endif %}
+</div>
+{% endblock %}

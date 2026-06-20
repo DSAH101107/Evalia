@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Panel Administrador - Sistema SENA{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>📊 Panel de Administrador</h1>
+    <p>Bienvenido, <strong>{{ request.user.get_full_name|default:request.user.username }}</strong></p>
+</div>
+
+<h2>Estadísticas Generales</h2>
+<div class="metrics-grid">
+    <div class="metric-card">
+        <div class="metric-value">{{ usuarios }}</div>
+        <div class="metric-label">Usuarios</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-value">{{ fichas_count }}</div>
+        <div class="metric-label">Fichas</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-value">{{ aprendices }}</div>
+        <div class="metric-label">Aprendices</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-value">{{ evaluaciones }}</div>
+        <div class="metric-label">Evaluaciones</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-value">{{ checklists }}</div>
+        <div class="metric-label">Checklists</div>
+    </div>
+</div>
+
+<h2 style="margin-top: 2rem; margin-bottom: 1rem;">Acciones Rápidas</h2>
+<div class="metrics-grid">
+    <a href="{% url 'lista_usuarios_por_grupos' %}" class="metric-card">
+        <div style="font-size:2rem;">👥</div>
+        <div class="metric-label">Usuarios</div>
+    </a>
+    <a href="{% url 'lista_aprendices' %}" class="metric-card">
+        <div style="font-size:2rem;">🎒</div>
+        <div class="metric-label">Aprendices</div>
+    </a>
+    <a href="{% url 'lista_evaluaciones' %}" class="metric-card">
+        <div style="font-size:2rem;">📝</div>
+        <div class="metric-label">Evaluaciones</div>
+    </a>
+    <a href="{% url 'lista_checklists' %}" class="metric-card">
+        <div style="font-size:2rem;">✅</div>
+        <div class="metric-label">Checklists</div>
+    </a>
+    <a href="{% url 'admin_ficha_resultados' %}" class="metric-card">
+        <div style="font-size:2rem;">📊</div>
+        <div class="metric-label">Resultados</div>
+    </a>
+</div>
+
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Trimestre {{ trimestre.numero }} - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'lista_trimestres' %}" class="btn btn-outline">↩️ Volver</a>
+</div>
+<h1>Trimestre {{ trimestre.numero }} - {{ trimestre.anio }}</h1>
+
+<div class="card">
+    <p><strong>Nombre:</strong> {{ trimestre.nombre|default:"-" }}</p>
+    <p><strong>Fecha Inicio:</strong> {{ trimestre.fecha_inicio|default:"-" }}</p>
+    <p><strong>Fecha Fin:</strong> {{ trimestre.fecha_fin|default:"-" }}</p>
+    <p><strong>Activo:</strong> {{ trimestre.activo|yesno:"Sí,No" }}</p>
+    
+    <div class="form-actions">
+        <a href="{% url 'editar_trimestre' trimestre.pk %}" class="btn btn-primary">Editar</a>
+        <form action="{% url 'eliminar_trimestre' trimestre.pk %}" method="post" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger" onclick="return confirm('¿Está seguro?')">Eliminar</button>
+        </form>
+    </div>
+</div>
+
+<div class="card" style="margin-top: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2 style="margin-top:0;">Competencias asociadas ({{ competencias|length }})</h2>
+        <a href="{% url 'crear_competencia' %}?trimestre={{ trimestre.pk }}" class="btn btn-primary">➕ Nueva Competencia</a>
+    </div>
+    {% if competencias %}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Nombre</th>
+                    <th>Ficha</th>
+                    <th>GAES</th>
+                    <th>Fase</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for comp in competencias %}
+                <tr>
+                    <td><strong>{{ comp.codigo }}</strong></td>
+                    <td>{{ comp.nombre }}</td>
+                    <td>{{ comp.ficha.numero|default:"—" }}</td>
+                    <td>{{ comp.gaes.nombre|default:"—" }}</td>
+                    <td>Fase {{ comp.fase.numero }}</td>
+                    <td>{{ comp.activo|yesno:"Sí,No" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color:#888; padding: 1.5rem; text-align: center;">No hay competencias asociadas a este trimestre.</p>
+    {% endif %}
+</div>
+{% endblock %}

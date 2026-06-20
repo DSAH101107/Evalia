@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Mi Checklist - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'dashboard_jurado' %}" class="btn btn-outline">🏠 Volver al Dashboard</a>
+</div>
+
+<div class="page-header">
+    <h1>📋 Lista de Chequeo</h1>
+    <p class="subtitle">Selecciona una checklist para ver sus items</p>
+</div>
+
+<div class="card">
+    {% if checklists %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Título</th>
+                <th>Descripción</th>
+                <th># Items</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in checklists %}
+            <tr>
+                <td><a href="{% url 'jurado_mi_checklist_id' c.id %}">{{ c.titulo }}</a></td>
+                <td>{{ c.descripcion|default:"—" }}</td>
+                <td>{{ c.items.count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">No hay checklists disponibles para tu ficha.</p>
+    {% endif %}
+</div>
+
+{% if checklist and items %}
+<hr>
+<div class="page-header">
+    <h2>📋 {{ checklist.titulo }}</h2>
+    <p class="subtitle">{{ checklist.descripcion }}</p>
+</div>
+
+<div class="card">
+    {% for item in items %}
+    <div style="border: 1px solid var(--bordes); border-radius: 4px; padding: 1rem; margin-bottom: 1rem; background: var(--blanco);">
+        <div style="display: flex; gap: 1rem; align-items: start;">
+            <div style="flex: 1;">
+                <label style="font-weight: 500;">{{ forloop.counter }}. Criterio:</label><br>
+                <div style="padding: 0.5rem; background: var(--gris-claro); border-radius: 4px; min-height: 60px;">{{ item.criterio }}</div>
+            </div>
+            <div style="flex: 0 0 200px;">
+                <label>Puntaje Máx.:</label><br>
+                <span style="font-weight: 500; color: var(--azul); padding: 0.5rem; background: var(--gris-claro); border-radius: 4px;">{{ item.puntaje_maximo }}</span>
+            </div>
+        </div>
+        <div style="margin-top: 1rem;">
+            <label>Descripción:</label>
+            <p style="color: var(--gris-texto); padding: 0.5rem; background: var(--gris-claro); border-radius: 4px;">{{ item.descripcion|default:"—" }}</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

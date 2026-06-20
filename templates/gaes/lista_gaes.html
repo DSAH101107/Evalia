@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}GAES - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'dashboard_admin' %}" class="btn btn-outline">🏠 Volver al Panel</a>
+    <a href="{% url 'crear_gaes' %}" class="btn btn-primary">➕ Crear GAES</a>
+</div>
+
+{# ====================== PANEL DE FILTROS ====================== #}
+<div class="card" style="margin-bottom: 1.5rem;">
+    <form method="get" action="" id="filtros-form">
+        <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+            <!-- Búsqueda general -->
+            <div style="flex: 1; min-width: 250px;">
+                <label for="search">Búsqueda general</label>
+                <input type="text" id="search" name="search" placeholder="Buscar por nombre o descripción…" value="{{ search }}" style="width:100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px;">
+            </div>
+
+            <!-- Nombre -->
+            <div style="flex: 1; min-width: 160px;">
+                <label for="filtro_nombre">Nombre</label>
+                <input type="text" id="filtro_nombre" name="filtro_nombre" placeholder="Nombre GAES…" value="{{ filtro_nombre }}" style="width:100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px;">
+            </div>
+
+            <!-- Ficha -->
+            <div style="flex: 1; min-width: 140px;">
+                <label for="filtro_ficha">Ficha</label>
+                <select id="filtro_ficha" name="filtro_ficha" style="width:100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px;">
+                    <option value="">Todos</option>
+                    {% for ficha in fichas_list %}
+                    <option value="{{ ficha.numero }}" {% if filtro_ficha == ficha.numero %}selected{% endif %}>{{ ficha.numero }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Acciones -->
+            <div style="display: flex; gap: 0.5rem;">
+                <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1rem;">🔍 Filtrar</button>
+                <a href="{% url 'lista_gaes' %}" class="btn btn-outline" style="padding: 0.5rem 1rem;">Limpiar</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<h1>GAES</h1>
+
+<div class="card">
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <th>Aprendices</th>
+                <th>Fichas</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for g in gaes_list %}
+            <tr>
+                <td>{{ g.nombre }}</td>
+                <td>{{ g.descripcion|default:"-"|truncatechars:50 }}</td>
+                <td>{{ g.cant_aprendices|default:0 }}</td>
+                <td>{{ g.cant_fichas|default:0 }}</td>
+                <td>
+                    <a href="{% url 'detalle_gaes' g.pk %}">Ver</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5">No hay GAES creados.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

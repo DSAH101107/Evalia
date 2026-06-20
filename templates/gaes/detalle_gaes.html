@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}GAES {{ gaes.nombre }} - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    {% if user.rol == 'administrador' %}
+    <a href="{% url 'ver_gaes_ficha' gaes.ficha.pk %}" class="btn btn-outline">🔙 Volver</a>
+    <a href="{% url 'lista_fichas_con_aprendices' %}" class="btn btn-outline">📁 Volver a Fichas</a>
+    <a href="{% url 'dashboard_admin' %}" class="btn btn-outline">🏠 Volver al Panel</a>
+    {% else %}
+    <a href="{% url 'lista_gaes_instructor' %}" class="btn btn-outline">🔙 Volver a GAES</a>
+    <a href="{% url 'dashboard_instructor' %}" class="btn btn-outline">🏠 Volver al Panel</a>
+    {% endif %}
+</div>
+
+<h1>{{ gaes.nombre }}</h1>
+
+<div class="card">
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+    <p><strong>Descripción:</strong> {{ gaes.descripcion|default:"Sin descripción" }}</p>
+    <p><strong>Ficha:</strong> {% if gaes.ficha %}{{ gaes.ficha.numero }}{% else %}No asignada{% endif %}</p>
+    <p><strong>Aprendices en GAES:</strong> {{ aprendices_en_gaes|length }}</p>
+    
+    <div class="form-actions">
+        <a href="{% url 'editar_gaes' gaes.pk %}" class="btn btn-primary">Editar</a>
+        {% if request.user.rol in 'administrador,instructor,jurado' %}
+            {% if aprendices_en_gaes %}
+            <a href="{% url 'evaluar_gaes' gaes.pk %}" class="btn btn-success">📋 Evaluar GAES</a>
+            {% else %}
+            <button class="btn btn-secondary" disabled title="Sin aprendices para evaluar">📋 Evaluar GAES</button>
+            {% endif %}
+        {% endif %}
+        <form action="{% url 'eliminar_gaes' gaes.pk %}" method="post" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger" onclick="return confirm('¿Está seguro de eliminar el GAES {{ gaes.nombre }}?')">Eliminar GAES</button>
+        </form>
+    </div>
+</div>
+
+<h2>Aprendices en este GAES</h2>
+<div class="card">
+    {% if aprendices_en_gaes %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Documento</th>
+                <th>Ficha</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for aprendiz in aprendices_en_gaes %}
+            <tr>
+                <td>{{ aprendiz.nombres }} {{ aprendiz.apellidos }}</td>
+                <td>{{ aprendiz.documento }}</td>
+                <td>{{ aprendiz.ficha.numero|default:"-" }}</td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="openTransferModal({{ aprendiz.id }}, '{{ aprendiz.nombres }} {{ aprendiz.apellidos }}')">🔄 Editar</button>
+                    <form action="{% url 'eliminar_aprendiz_gaes' gaes.pk aprendiz.id %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Quitar a este aprendiz del GAES?')">🗑️ Eliminar</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No hay aprendices asignados a este GAES.</p>
+    {% endif %}
+</div>
+
+<h2>Agregar Aprendices</h2>
+<div class="card">
+    {% if aprendices_disponibles %}
+    <form action="{% url 'agregar_aprendices_gaes' gaes.pk %}" method="post">
+        {% csrf_token %}
+        <p>Seleccione entre 1 y 4 aprendices disponibles:</p>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Nombre</th>
+                    <th>Documento</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for aprendiz in aprendices_disponibles %}
+                <tr>
+                    <td><input type="checkbox" name="aprendiz_ids" value="{{ aprendiz.id }}"></td>
+                    <td>{{ aprendiz.nombres }} {{ aprendiz.apellidos }}</td>
+                    <td>{{ aprendiz.documento }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">💾 Guardar</button>
+        </div>
+    </form>
+    {% else %}
+    <p>No hay aprendices disponibles.</p>
+    {% endif %}
+</div>
+
+<div id="transferModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5);">
+    <div style="background:white; margin:10% auto; padding:20px; max-width:500px;">
+        <h3>Transferir Aprendiz</h3>
+        <p id="transferAprendizNombre"></p>
+        <form method="post" id="transferForm">
+            {% csrf_token %}
+            <select name="nuevo_gaes_id" required>
+                <option value="">Seleccione GAES destino</option>
+                {% for g in gaes_list|default:"" %}
+                    {% if g.id != gaes.id %}
+                    <option value="{{ g.id }}">{{ g.nombre }}</option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+            <br><br>
+            <button type="submit" class="btn btn-primary">Transferir</button>
+            <button type="button" class="btn btn-secondary" onclick="closeTransferModal()">Cancelar</button>
+        </form>
+    </div>
+</div>
+
+<script>
+var gaesPk = {{ gaes.pk }};
+var transferUrlBase = "/gaes/" + gaesPk + "/aprendiz/";
+
+function openTransferModal(aprendizId, nombre) {
+    document.getElementById('transferAprendizNombre').textContent = 'Aprendiz: ' + nombre;
+    document.getElementById('transferForm').action = transferUrlBase + aprendizId + "/transferir/";
+    document.getElementById('transferModal').style.display = 'block';
+}
+function closeTransferModal() {
+    document.getElementById('transferModal').style.display = 'none';
+}
+</script>
+{% endblock %}

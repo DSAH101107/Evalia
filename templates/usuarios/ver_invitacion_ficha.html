@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Invitación - Ficha {{ invitacion.ficha.numero|default:"Sin ficha" }}{% endblock %}
+
+{% block content %}
+<h1>Invitación para Sustentación</h1>
+
+<div class="card">
+    <h2>Detalles de la Invitación</h2>
+
+    <div class="info-grid">
+        {% if invitacion.ficha %}
+        <div style="margin-bottom: 1rem;">
+            <a href="{% url 'detalle_ficha' invitacion.ficha.id %}" class="btn btn-outline">← Volver a la ficha</a>
+        </div>
+        <div><strong>Ficha:</strong> {{ invitacion.ficha.numero }}</div>
+        <div><strong>Programa:</strong> {{ invitacion.ficha.programa }}</div>
+        {% else %}
+        <div><strong>Ficha:</strong> No asignada</div>
+        <div><strong>Programa:</strong> -</div>
+        {% endif %}
+        <div><strong>Fecha:</strong> {{ invitacion.fecha_evaluacion|default:"Por definir" }}</div>
+        <div><strong>Hora:</strong> {{ invitacion.hora_evaluacion|default:"Por definir" }}</div>
+        <div><strong>Estado:</strong>
+            {% if invitacion.estado == 'pendiente' %}
+                <span class="badge badge-warning">Pendiente</span>
+            {% elif invitacion.estado == 'aceptada' %}
+                <span class="badge badge-success">Aceptada</span>
+            {% else %}
+                <span class="badge badge-danger">Rechazada</span>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if invitacion.mensaje %}
+    <div class="mensaje-box">
+        <strong>Mensaje:</strong>
+        <p>{{ invitacion.mensaje }}</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2>Jurados Asignados</h2>
+
+    {% if jurados %}
+    <ul class="jurados-list">
+        {% for jurado in jurados %}
+        <li>
+            <span class="jurado-nombre">{{ jurado.username }}</span>
+            <span class="jurado-email">{{ jurado.email }}</span>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-muted">No hay jurados asignados aún.</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2>Compartir</h2>
+    <p>Comparte esta invitación con otros jurados:</p>
+
+    <a href="{% url 'compartir_invitacion' invitacion.id %}" class="btn btn-primary">Compartir con otro jurado</a>
+</div>
+
+<style>
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+.mensaje-box {
+    background: #f5f5f5;
+    padding: 1rem;
+    border-radius: 4px;
+    margin-top: 1rem;
+}
+.jurados-list {
+    list-style: none;
+    padding: 0;
+}
+.jurados-list li {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem;
+    border-bottom: 1px solid #eee;
+}
+.jurado-nombre {
+    font-weight: bold;
+}
+.jurado-email {
+    color: #666;
+    font-size: 0.9rem;
+}
+</style>
+{% endblock %}
