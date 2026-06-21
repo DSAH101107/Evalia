@@ -10,7 +10,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'evalia-dev-secret-key-change-in-production')
 DEBUG = os.getenv('DEBUG', 'true').lower() in ('1','true','yes','on')
-ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if h.strip()]
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    'motocrack.pythonanywhere.com',
+]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -173,8 +177,9 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
 ]
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+    'https://motocrack.pythonanywhere.com',
 ]
 
 # ==============================
