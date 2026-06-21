@@ -51,9 +51,9 @@
                 <div style="font-weight: 500; margin-bottom: 0.5rem;">{{ item.criterio }}</div>
                 <div style="color: var(--gris-texto); margin-bottom: 0.5rem; font-size: 0.9rem;">{{ item.descripcion }}</div>
                 <div style="display: flex; gap: 1rem; align-items: center;">
-                    <input type="number" name="item_{{ item.id }}" min="0" max="{{ item.puntaje_maximo }}" step="0.1" 
+                    <input type="number" name="item_{{ item.id }}" min="0" max="10" step="0.1" 
                            style="width: 100px; padding: 0.5rem;" placeholder="0" required>
-                    <span style="font-weight: 500; color: var(--azul-grisaceo);">/ {{ item.puntaje_maximo }}</span>
+                    <span style="font-weight: 500; color: var(--azul-grisaceo);">/ 10</span>
                     <label style="margin-left: auto;">
                         <input type="checkbox" name="obs_{{ item.id }}"> Comentarios
                         <textarea name="comentario_{{ item.id }}" rows="2" style="width: 100%; margin-top: 0.5rem; display: none;" placeholder="Comentarios opcionales..."></textarea>

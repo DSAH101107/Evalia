@@ -68,7 +68,7 @@
             <tr>
                 <td>{{ checklist.titulo }}</td>
                 <td>{{ checklist.descripcion }}</td>
-                <td>#{{ checklist.id }}</td>
+                <td>{{ checklist.created_at|date:"d/m/Y H:i" }}</td>
                 <td>
                     {% if user.rol == 'administrador' or user.rol == 'jurado' or user.rol == 'instructor' %}
                     <a href="{% url 'ver_editar_checklist' checklist.id %}" class="btn btn-info btn-sm" style="padding: 0.25rem 0.5rem;">

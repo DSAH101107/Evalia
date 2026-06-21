@@ -74,15 +74,6 @@
                     <div style="padding: 0.5rem; background: var(--gris-claro); border-radius: 4px; min-height: 60px;">{{ item.criterio }}</div>
                     {% endif %}
                 </div>
-                
-                <div style="flex: 0 0 200px;">
-                    <label>Puntaje Máx.:</label><br>
-                    {% if can_edit %}
-                    <input type="number" name="puntaje_maximo_{{ item.id }}" min="1" max="100" step="0.1" value="{{ item.puntaje_maximo }}" style="width: 100px; padding: 0.5rem;">
-                    {% else %}
-                    <span style="font-weight: 500; color: var(--azul); padding: 0.5rem; background: var(--gris-claro); border-radius: 4px;">{{ item.puntaje_maximo }}</span>
-                    {% endif %}
-                </div>
             </div>
         </div>
         {% endfor %}

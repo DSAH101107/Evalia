@@ -11,6 +11,7 @@ registry population.
 
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 from apps.usuarios.models import Usuario
 
 
@@ -210,6 +211,7 @@ class Checklist(models.Model):
     titulo     = models.CharField(max_length=100)
     descripcion = models.TextField()
     activo     = models.BooleanField(default=True)
+    created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
         ordering = ['-id']

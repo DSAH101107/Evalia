@@ -1,146 +1,44 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ checklist.titulo }} - Vista Limpia</title>
-    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-    <style>
-        .checklist-header {
-            background: var(--azul);
-            color: white;
-            padding: 1.5rem;
-            border-radius: 8px;
-            margin-bottom: 1.5rem;
-        }
-        .checklist-meta {
-            display: flex;
-            gap: 2rem;
-            margin-top: 1rem;
-            font-size: 0.9rem;
-            opacity: 0.9;
-        }
-        .checklist-meta div {
-            flex: 1;
-        }
-        .item-container {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 1rem;
-            overflow: hidden;
-        }
-        .item-header {
-            background: var(--gris-claro);
-            padding: 1rem;
-            border-bottom: 1px solid var(--bordes);
-        }
-        .item-content {
-            padding: 1rem;
-        }
-        .item-criterio {
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            line-height: 1.4;
-        }
-        .item-descripcion {
-            color: var(--gris-texto);
-            line-height: 1.5;
-        }
-        .item-meta {
-            display: flex;
-            gap: 1.5rem;
-            margin-top: 0.5rem;
-            font-size: 0.85rem;
-            color: var(--gris-texto);
-        }
-        .item-puntaje, .item-etapa {
-            background: var(--gris-claro);
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-        }
-        .no-items {
-            text-align: center;
-            color: var(--gris-texto);
-            padding: 2rem;
-        }
+{% extends "base.html" %}
 
-        .btn-edit {
-            display: inline-block;
-            background: var(--azul);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            text-decoration: none;
-            margin-left: 0.5rem;
-        }
-        .btn-print {
-            display: inline-block;
-            background: var(--verde);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            text-decoration: none;
-            margin-left: 0.5rem;
-        }
-        @media (max-width: 768px) {
-            .checklist-meta {
-                flex-direction: column;
-            }
-            .item-meta {
-                flex-wrap: wrap;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div style="max-width: 800px; margin: 0 auto; padding: 1rem;">
-        <a href="{% url 'lista_checklists' %}" class="btn btn-outline mb-3">← Volver a la lista</a>
-        
-        <div class="checklist-header">
-            <h1>{{ checklist.titulo }}</h1>
-            <p>{{ checklist.descripcion }}</p>
-            <div class="checklist-meta">
-                <div><strong>ID:</strong> {{ checklist.id }}</div>
-                <div><strong>Fecha de creación:</strong> {{ checklist.fecha_creacion|date:"d/m/Y" }}</div>
-                <div><strong>Estado:</strong> {% if checklist.activo %}<span style="color: var(--verde);">Activo</span>{% else %}<span style="color: var(--rojo);">Inactivo</span>{% endif %}</div>
-            </div>
-        </div>
+{% block title %}{{ checklist.titulo }} - Vista Limpia{% endblock %}
 
-        {% if items %}
-            {% for item in items %}
-            <div class="item-container">
-                <div class="item-header">
-                    <span>#{{ forloop.counter }}</span>
-                </div>
-                <div class="item-content">
-                    <div class="item-criterio">{{ item.criterio }}</div>
-                    {% if item.descripcion %}
-                    <div class="item-descripcion">{{ item.descripcion }}</div>
-                    {% endif %}
-                    {% if item.etapa or item.puntaje_maximo %}
-                    <div class="item-meta">
-                        {% if item.puntaje_maximo %}
-                        <div class="item-puntaje"><strong>Puntaje máximo:</strong> {{ item.puntaje_maximo }}</div>
-                        {% endif %}
-                        {% if item.etapa %}
-                        <div class="item-etapa"><strong>Etapa:</strong> {{ item.etapa }}</div>
-                        {% endif %}
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-            {% endfor %}
-        {% else %}
-            <div class="no-items">
-                <p>No hay items en esta checklist.</p>
-            </div>
-        {% endif %}
-
-        <div style="margin-top: 2rem; text-align: center;">
-            <a href="{% url 'ver_editar_checklist' checklist.id %}" class="btn-edit">✏️ Editar Checklist</a>
-            <a href="{% url 'imprimir_checklist' checklist.id %}" class="btn-print">🖨️ Imprimir Checklist</a>
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto;">
+    <a href="{% url 'lista_checklists' %}" class="btn btn-outline mb-3">← Volver a la lista</a>
+    
+    <div class="card" style="background: linear-gradient(135deg, var(--verde-sena) 0%, var(--verde-profundo) 100%); color: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
+        <h1>{{ checklist.titulo }}</h1>
+        <p>{{ checklist.descripcion }}</p>
+        <div style="display: flex; gap: 2rem; margin-top: 1rem; font-size: 0.9rem; opacity: 0.9;">
+            <div><strong>ID:</strong> {{ checklist.id }}</div>
+            <div><strong>Fecha creación:</strong> {{ checklist.created_at|date:"d/m/Y H:i" }}</div>
+            <div><strong>Estado:</strong> {% if checklist.activo %}<span style="color: var(--success);">Activo</span>{% else %}<span style="color: var(--danger);">Inactivo</span>{% endif %}</div>
         </div>
     </div>
-</body>
-</html>
+    
+    {% if items %}
+        {% for item in items %}
+        <div class="card mb-3" style="background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden;">
+            <div style="background: var(--gris-claro); padding: 1rem; border-bottom: 1px solid var(--bordes);">
+                <span>#{{ forloop.counter }}</span>
+            </div>
+            <div style="padding: 1rem;">
+                <div style="font-weight: 600; margin-bottom: 0.5rem; line-height: 1.4;">{{ item.criterio }}</div>
+                {% if item.descripcion %}
+                <div style="color: var(--gris-texto); line-height: 1.5;">{{ item.descripcion }}</div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="card">
+            <p class="text-center" style="color: var(--gris-texto); padding: 2rem;">No hay items en esta checklist.</p>
+        </div>
+    {% endif %}
+    
+    <div style="margin-top: 2rem; text-align: center;">
+        <a href="{% url 'ver_editar_checklist' checklist.id %}" class="btn btn-primary" style="margin-left: 0.5rem;">✏️ Editar Checklist</a>
+        <a href="{% url 'imprimir_checklist' checklist.id %}" class="btn btn-success" style="margin-left: 0.5rem;">🖨️ Imprimir Checklist</a>
+    </div>
+</div>
+{% endblock %}

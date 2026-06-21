@@ -657,7 +657,7 @@ def detalle_ficha_evaluacion(request, ficha_id):
     
     # Get jurados who evaluated this ficha
     jurados_ficha = Usuario.objects.filter(
-        evaluaciones_realizadas__aprendiz__ficha=ficha
+        evaluaciones_realizadas__aprendiz__gaes__ficha=ficha
     ).distinct()
     
     # Add evaluation status to each GAES
@@ -693,7 +693,7 @@ def generar_reporte_ficha(request, ficha_id):
     ).distinct()
     
     jurados_ficha = Usuario.objects.filter(
-        evaluaciones_realizadas__aprendiz__ficha=ficha
+        evaluaciones_realizadas__aprendiz__gaes__ficha=ficha
     ).distinct()
     
     buf = BytesIO()
