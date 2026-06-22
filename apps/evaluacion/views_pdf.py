@@ -204,11 +204,13 @@ def importar_pdf_aprendices_form(request):
 
 
 @login_required
-@require_http_methods(["POST"])
 def importar_pdf_checklists(request):
     if request.user.rol not in ['administrador', 'instructor']:
         messages.error(request, 'No tienes acceso')
         return redirect('lista_checklists')
+
+    if request.method == 'GET':
+        return render(request, 'evaluacion/importar_pdf_checklists.html')
 
     if 'archivo_pdf' not in request.FILES:
         messages.error(request, 'No se subió archivo PDF')

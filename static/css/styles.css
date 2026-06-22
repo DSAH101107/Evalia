@@ -873,13 +873,87 @@ table tbody tr:last-child td {
   margin-top: 1rem;
 }
 
-/* =====================================================
-   ITEM ROW (checklist items)
-   ===================================================== */
+#items-container {
+    width: 100% !important;
+    max-width: none !important;
+}
+
 .item-row {
-  display: flex;
-  gap: 1rem;
-  align-items: flex-start;
+    display: flex !important;
+    gap: 1rem !important;
+    align-items: stretch !important;
+    border: 1px solid var(--bordes) !important;
+    border-radius: 8px !important;
+    padding: 12px !important;
+    margin-bottom: 10px !important;
+    background: var(--blanco) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.item-row input[type="text"] {
+    flex: 2 !important;
+    min-width: 320px !important;
+    padding: 0.7rem 1rem !important;
+    border: 1px solid var(--bordes) !important;
+    border-radius: 8px !important;
+    font-size: 0.9375rem !important;
+    background: var(--gris-claro) !important;
+    box-sizing: border-box !important;
+}
+
+.item-row select {
+    flex: 0 0 160px !important;
+    padding: 0.7rem 1rem !important;
+    border: 1px solid var(--bordes) !important;
+    border-radius: 8px !important;
+    font-size: 0.9375rem !important;
+    background: var(--gris-claro) !important;
+    box-sizing: border-box !important;
+}
+
+.item-row input[type="text"]:focus,
+.item-row select:focus {
+    border-color: var(--verde-sena) !important;
+    box-shadow: 0 0 0 3px rgba(0, 105, 92, 0.15) !important;
+    background: var(--blanco) !important;
+}
+
+.item-row .remove-item {
+    flex: 0 0 auto !important;
+}
+
+.item-row input[type="text"] {
+    flex: 2 !important;
+    min-width: 280px !important;
+    width: auto !important;
+    padding: 0.7rem 1rem !important;
+    border: 1px solid var(--bordes) !important;
+    border-radius: 8px !important;
+    font-size: 0.9375rem !important;
+    background: var(--gris-claro) !important;
+}
+
+.item-row select {
+    flex: 1 !important;
+    min-width: 180px !important;
+    padding: 0.7rem 1rem !important;
+    border: 1px solid var(--bordes) !important;
+    border-radius: 8px !important;
+    font-size: 0.9375rem !important;
+    background: var(--gris-claro) !important;
+}
+
+.item-row input[type="text"]:focus,
+.item-row select:focus {
+    border-color: var(--verde-sena) !important;
+    box-shadow: 0 0 0 3px rgba(0, 105, 92, 0.15) !important;
+    background: var(--blanco) !important;
+}
+
+.item-row .remove-item {
+    flex: 0 0 auto !important;
+    padding: 0.35rem 0.75rem !important;
 }
 
 /* =====================================================

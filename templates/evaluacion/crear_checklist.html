@@ -4,7 +4,7 @@
 
 {% block content %}
 <div style="margin-bottom: 1rem;">
-    <a href="{% url 'dashboard_admin' %}" class="btn btn-outline">🏠 Volver al Panel</a>
+    <a href="{% url 'dashboard_instructor' %}" class="btn btn-outline">🏠 Volver al Panel</a>
 </div>
 <h1>Crear Checklist</h1>
 
@@ -24,12 +24,13 @@
         
         <h3>Items de la Checklist</h3>
         <div id="items-container">
-            <div class="item-row">
-                <input type="text" name="criterio" placeholder="Criterio del item" required>
-                <select name="item_tipo">
+            <div class="item-row" style="max-width: none; width: 100%;">
+                <input type="text" name="criterio" placeholder="Criterio del item" required style="flex: 2; min-width: 350px; padding: 0.7rem 1rem; border: 1px solid var(--bordes); border-radius: 8px; background: var(--gris-claro); font-size: 0.9375rem; box-sizing: border-box;">
+                <select name="item_tipo" style="flex: 0 0 180px; padding: 0.7rem 1rem; border: 1px solid var(--bordes); border-radius: 8px; background: var(--gris-claro); font-size: 0.9375rem; box-sizing: border-box;">
                     <option value="boolean">Sí/No</option>
                     <option value="numerico">Numérico (0-100)</option>
                 </select>
+                <button type="button" class="remove-item btn btn-danger btn-sm" style="display: none;">✕</button>
             </div>
         </div>
         
@@ -37,7 +38,7 @@
         
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Guardar</button>
-            <a href="{% url 'dashboard_admin' %}" class="btn btn-outline">Cancelar</a>
+            <a href="{% url 'lista_checklists' %}" class="btn btn-outline">Cancelar</a>
         </div>
     </form>
 </div>
@@ -46,15 +47,38 @@
 document.getElementById('add-item').addEventListener('click', function() {
     const container = document.getElementById('items-container');
     const newRow = document.createElement('div');
-    newRow.className = 'item-row';
+    newRow.className = 'form-group';
     newRow.innerHTML = `
-        <input type="text" name="criterio" placeholder="Criterio del item" required>
-        <select name="item_tipo">
-            <option value="boolean">Sí/No</option>
-            <option value="numerico">Numérico (0-100)</option>
-        </select>
+        <div class="item-row">
+            <input type="text" name="criterio" placeholder="Criterio del item" required style="flex: 2; min-width: 350px; padding: 0.7rem 1rem; border: 1px solid var(--bordes); border-radius: 8px; background: var(--gris-claro); font-size: 0.9375rem; box-sizing: border-box;">
+            <select name="item_tipo" style="flex: 0 0 180px; padding: 0.7rem 1rem; border: 1px solid var(--bordes); border-radius: 8px; background: var(--gris-claro); font-size: 0.9375rem; box-sizing: border-box;">
+                <option value="boolean">Sí/No</option>
+                <option value="numerico">Numérico (0-100)</option>
+            </select>
+            <button type="button" class="remove-item btn btn-danger btn-sm">✕</button>
+        </div>
     `;
     container.appendChild(newRow);
+    updateRemoveButtons();
 });
+
+document.getElementById('items-container').addEventListener('click', function(e) {
+    if (e.target.classList.contains('remove-item')) {
+        e.target.closest('.item-row').remove();
+        updateRemoveButtons();
+    }
+});
+
+function updateRemoveButtons() {
+    const rows = document.querySelectorAll('.item-row');
+    rows.forEach((row, index) => {
+        const removeBtn = row.querySelector('.remove-item');
+        if (rows.length > 1) {
+            removeBtn.style.display = 'inline-flex';
+        } else {
+            removeBtn.style.display = 'none';
+        }
+    });
+}
 </script>
 {% endblock %}
