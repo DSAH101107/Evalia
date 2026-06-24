@@ -32,9 +32,13 @@
     <div style="margin-top: 1.5rem; padding: 1rem; background: var(--gris-claro); border-radius: 8px;">
         <p><strong>Formato esperado del PDF:</strong></p>
         <ul>
-            <li>La tabla debe contener columnas con "criterio", "indicador" o "variable" (case-insensitive)</li>
-            <li>Opcional: columnas "etapa" y "comentarios"</li>
-            <li>Se detectará automáticamente la tabla principal con criterios</li>
+            <li>El PDF debe tener texto seleccionable o una tabla real. Si el PDF es una imagen escaneada sin OCR, el sistema no podrá leer los criterios.</li>
+            <li>La tabla principal debe tener una columna con encabezado que contenga "criterio", "indicador", "variable" o "item" (case-insensitive).</li>
+            <li>Los criterios deben estar en filas debajo del encabezado. Si la tabla se repite en varias páginas, se tomarán las filas válidas y se eliminarán duplicados.</li>
+            <li>El encabezado puede estar en la primera fila o dentro de las primeras filas del PDF. También se aceptan tablas con encabezados como "Criterio de evaluación", "Indicadores y/o variables" o similar.</li>
+            <li>Si el PDF no contiene tabla, puede funcionar cuando los criterios aparecen como texto enumerado bajo una sección de criterios, por ejemplo: "1. Cumple con...", "2. Presenta...", etc.</li>
+            <li><strong>Opcional:</strong> columnas "etapa" o "fase" para asignar etapa; columnas "comentarios", "descripción", "observaciones" o "desc" para guardar detalles del item; columnas "puntaje", "puntos" o "calificación" para definir el puntaje máximo.</li>
+            <li>No se recomienda usar PDFs con columnas fusionadas, criterios separados por saltos de línea sin tabla o imágenes insertadas, porque pueden no detectarse correctamente.</li>
         </ul>
     </div>
 </div>

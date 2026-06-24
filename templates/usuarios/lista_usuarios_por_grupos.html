@@ -67,7 +67,7 @@
             </h2>
             <div id="collapseAdmin" class="accordion-collapse collapse{% if filtro_rol == 'administrador' or not filtro_rol %} show{% endif %}" aria-labelledby="headingAdmin" data-bs-parent="#usuariosAccordion">
                 <div class="accordion-body">
-                    {% include "usuarios/partials/tabla_usuarios.html" with usuarios=usuarios_admin %}
+{% include "usuarios/partials/tabla_usuarios.html" with usuarios=usuarios_admin %}
                 </div>
             </div>
         </div>
@@ -83,7 +83,7 @@
             </h2>
             <div id="collapseInstructorJurado" class="accordion-collapse collapse{% if filtro_rol == 'instructor' or filtro_rol == 'jurado' %} show{% endif %}" aria-labelledby="headingInstructorJurado" data-bs-parent="#usuariosAccordion">
                 <div class="accordion-body">
-                    {% include "usuarios/partials/tabla_usuarios.html" with usuarios=usuarios_instructores_jurados %}
+{% include "usuarios/partials/tabla_usuarios.html" with usuarios=usuarios_instructores_jurados %}
                 </div>
             </div>
         </div>
@@ -99,7 +99,7 @@
             </h2>
             <div id="collapseAprendices" class="accordion-collapse collapse{% if filtro_rol == 'aprendiz' %} show{% endif %}" aria-labelledby="headingAprendices" data-bs-parent="#usuariosAccordion">
                 <div class="accordion-body">
-                    {% include "usuarios/partials/tabla_usuarios.html" with usuarios=usuarios_aprendices %}
+{% include "usuarios/partials/tabla_usuarios.html" with usuarios=usuarios_aprendices %}
                 </div>
             </div>
         </div>

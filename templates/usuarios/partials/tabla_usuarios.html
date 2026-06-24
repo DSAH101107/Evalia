@@ -1,5 +1,6 @@
 <div class="table-responsive">
     <table>
+
         <thead>
             <tr>
                 <th>Usuario</th>
@@ -17,9 +18,23 @@
                 </td>
                 <td>{{ usuario.email|default:"Sin email" }}</td>
                 <td>
-                    <span class="badge" style="background: {% if usuario.rol == 'administrador' %}#4A6FA5{% elif usuario.rol == 'instructor' %}#2E8B8B{% elif usuario.rol == 'jurado' %}#6B7280{% else %}#9CA3AF{% endif %}; color: white; padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.875rem;">
-                        {{ usuario.get_rol_display }}
-                    </span>
+                    {% if usuario.rol == 'administrador' %}
+                        <span class="badge" style="background:#4A6FA5; color: white; padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.875rem;">
+                            {{ usuario.get_rol_display }}
+                        </span>
+                    {% elif usuario.rol == 'instructor' %}
+                        <span class="badge" style="background:#2E8B8B; color: white; padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.875rem;">
+                            {{ usuario.get_rol_display }}
+                        </span>
+                    {% elif usuario.rol == 'jurado' %}
+                        <span class="badge" style="background:#6B7280; color: white; padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.875rem;">
+                            {{ usuario.get_rol_display }}
+                        </span>
+                    {% else %}
+                        <span class="badge" style="background:#9CA3AF; color: white; padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.875rem;">
+                            {{ usuario.get_rol_display }}
+                        </span>
+                    {% endif %}
                 </td>
                 <td>{{ usuario.date_joined|date:"d/m/Y H:i" }}</td>
                 <td>
@@ -37,3 +52,4 @@
         </tbody>
     </table>
 </div>
+
