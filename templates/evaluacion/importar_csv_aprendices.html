@@ -36,7 +36,6 @@
             <tr><td><code>telefono</code></td><td>string</td><td>Opcional</td></tr>
             <tr><td><code>programa</code></td><td>string</td><td>Opcional</td></tr>
             <tr><td><code>ficha</code></td><td>string</td><td>Opcional — crea o busca la ficha por número</td></tr>
-            <tr><td><code>gaes</code></td><td>string</td><td>Opcional — crea GAES si no existe; lo asocia a la ficha</td></tr>
             <tr><td><code>fase</code></td><td>int (1-7)</td><td>Opcional — crea la fase si no existe</td></tr>
             <tr><td><code>trimestre</code></td><td>string</td><td>Opcional — valor texto libre</td></tr>
         </tbody>
@@ -44,9 +43,9 @@
 
     <h4>Ejemplo de archivo CSV</h4>
     <pre style="background:#f5f5dc; padding:1rem; overflow-x:auto; border-radius:8px; max-width:900px;">
-documento,nombres,apellidos,email,telefono,programa,ficha,gaes,fase,trimestre
-12345678,Maria,Lopez,maria@test.com,3001112222,ADSI,C001,Tecnologo,3,1-2024
-87654321,Juan,Perez,juan@test.com,3003334444,GAES,C002,Industrial,3,1-2024</pre>
+documento,nombres,apellidos,email,telefono,programa,ficha,fase,trimestre
+12345678,Maria,Lopez,maria@test.com,3001112222,ADSI,C001,3,1-2024
+87654321,Juan,Perez,juan@test.com,3003334444,GAES,C002,3,1-2024</pre>
 
     <form method="post" enctype="multipart/form-data" style="margin-top: 2rem;">
         {% csrf_token %}
@@ -60,15 +59,6 @@ documento,nombres,apellidos,email,telefono,programa,ficha,gaes,fase,trimestre
                 <option value="">Seleccione una fase (opcional)</option>
                 {% for fase in fases %}
                     <option value="{{ fase.numero }}">Fase {{ fase.numero }}{% if fase.nombre %} - {{ fase.nombre }}{% endif %}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="default_gaes">GAES por defecto:</label>
-            <select class="form-control" id="default_gaes" name="default_gaes">
-                <option value="">Seleccione un GAES (opcional)</option>
-                {% for gaes in gaes_list %}
-                    <option value="{{ gaes.nombre }}">{{ gaes.nombre }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -95,7 +85,7 @@ documento,nombres,apellidos,email,telefono,programa,ficha,gaes,fase,trimestre
         <li>Al final se muestra un aviso con los errores por número de fila y una descripción.</li>
         <li>Si el aprendiz ya existe (mismo documento), se <strong>actualizan</strong> sus datos.</li>
         <li>Los usuarios se crean solo si el documento no existía previamente.</li>
-        <li>SVGAES y Fase se crean automáticamente si el valor no existe en el sistema.</li>
+        <li>Los aprendices se importan sin GAES asignado; el instructor lo podrá asignar después.</li>
     </ul>
 </div>
 {% endblock %}

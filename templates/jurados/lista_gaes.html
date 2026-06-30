@@ -21,7 +21,6 @@
                     <tr>
                         <th>GAES</th>
                         <th>Aprendices</th>
-                        <th>Checklist Disponible</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -30,13 +29,6 @@
                     <tr>
                         <td>{{ gaes.nombre }}</td>
                         <td>{{ gaes.aprendices_count }}</td>
-                        <td>
-                            {% with inv=gaes.fichas.first.invitaciones.all|first %}
-                                {% if inv.checklist and inv.estado == 'aceptada' %}
-                                    {{ inv.checklist.titulo }}
-                                {% endif %}
-                            {% endwith %}
-                        </td>
                         <td>
                             <a href="{% url 'jurado_evaluaciones_gaes' gaes.id %}" class="btn btn-primary btn-sm">Ver Resultados</a>
                         </td>

@@ -120,13 +120,12 @@
             </thead>
             <tbody>
                 {% for aprendiz in aprendices %}
-                {% with ficha_mostrar=aprendiz.ficha|default:aprendiz.gaes.ficha %}
                 <tr>
                     <td><strong>{{ aprendiz.documento }}</strong></td>
                     <td>{{ aprendiz.nombres }} {{ aprendiz.apellidos }}</td>
                     <td>{{ aprendiz.email }}</td>
                     <td>{{ aprendiz.programa }}</td>
-                    <td><span class="badge" style="background: #4A6FA5; color: white;">{{ ficha_mostrar|default:"Sin ficha" }}</span></td>
+                    <td><span class="badge" style="background: #4A6FA5; color: white;">{% if aprendiz.ficha %}{{ aprendiz.ficha }}{% elif aprendiz.gaes and aprendiz.gaes.ficha %}{{ aprendiz.gaes.ficha }}{% else %}Sin ficha{% endif %}</span></td>
                     <td><span class="badge" style="background: #7C3AED; color: white;">{{ aprendiz.gaes|default:"Sin GAES" }}</span></td>
                     <td><span class="badge" style="background: #D97706; color: white;">{{ aprendiz.fase|default:"Sin fase" }}</span></td>
                     <td>
@@ -150,7 +149,6 @@
                         {% endif %}
                     </td>
                 </tr>
-                {% endwith %}
                 {% empty %}
                 <tr>
                     <td colspan="9" style="text-align: center; padding: 3rem; color: var(--gris-texto);">

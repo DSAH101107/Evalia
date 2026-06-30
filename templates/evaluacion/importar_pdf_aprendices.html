@@ -14,8 +14,9 @@
 
     <p><strong>Formato esperado del PDF:</strong></p>
     <ul>
-        <li>Tabla con columnas: nombre, apellido, programa de formación, gaes, ficha, trimestre</li>
+        <li>Tabla con columnas: nombre, apellido, programa de formación, ficha, trimestre</li>
         <li>La <strong>fase</strong> se selecciona desde el desplegable (no es obligatoria en el PDF)</li>
+        <li>Los aprendices se importarán sin GAES asignado; el instructor lo podrá asignar después</li>
         <li>Headers exactos o detectables por posición</li>
     </ul>
 
@@ -31,6 +32,15 @@
                 <option value="">— Sin fase por defecto —</option>
                 {% for f in fase_choices %}
                 <option value="{{ f }}">{{ f }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="default_ficha">Ficha por defecto (si el PDF no lo incluye):</label>
+            <select class="form-control" id="default_ficha" name="default_ficha">
+                <option value="">— Sin ficha por defecto —</option>
+                {% for ficha in fichas_list %}
+                <option value="{{ ficha.numero }}">{{ ficha.numero }}</option>
                 {% endfor %}
             </select>
         </div>

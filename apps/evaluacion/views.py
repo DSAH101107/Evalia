@@ -12,6 +12,7 @@ from django.conf import settings
 from django.utils import timezone
 import logging
 import io
+import re
 import pandas as pd
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
@@ -670,23 +671,101 @@ def importar_excel(request):
         if not archivo:
             messages.error(request, 'Debe seleccionar un archivo.')
             return redirect('importar_excel')
+        default_ficha_id = request.POST.get('default_ficha')
+        default_fase_val = request.POST.get('default_fase')
+        default_ficha = None
+        if default_ficha_id:
+            try:
+                default_ficha = Ficha.objects.get(id=default_ficha_id)
+            except Ficha.DoesNotExist:
+                pass
+        default_fase = None
+        if default_fase_val:
+            default_fase, _ = Fase.objects.get_or_create(numero=default_fase_val)
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
         with db_transaction.atomic():
             df = pd.read_excel(archivo)
+            col_map = {}
+            for col in df.columns:
+                c = str(col).lower().strip()
+                if 'documento' in c or c in ('doc', 'cedula', 'cc', 'nit'):
+                    col_map['documento'] = col
+                elif 'nombre' in c and 'apellido' not in c:
+                    col_map['nombre'] = col
+                elif 'apellido' in c:
+                    col_map['apellidos'] = col
+                elif 'email' in c or 'correo' in c or 'e-mail' in c or 'mail' in c:
+                    col_map['email'] = col
+                elif 'telefono' in c or 'tel' in c:
+                    col_map['telefono'] = col
+                elif 'ficha' in c:
+                    col_map['ficha'] = col
+                elif 'gaes' in c:
+                    col_map['gaes'] = col
+                elif 'fase' in c:
+                    col_map['fase'] = col
+                elif 'trimestre' in c:
+                    col_map['trimestre'] = col
+
+            def _val(row, key):
+                val = row.get(col_map.get(key, ''))
+                return str(val).strip() if val is not None else ''
+
             for _, row in df.iterrows():
-                nombre = str(row.iloc[0]).strip() if len(row) > 0 else ''
-                documento = str(row.iloc[1]).strip() if len(row) > 1 else ''
-                email = str(row.iloc[2]).strip() if len(row) > 2 else ''
+                nombre = _val(row, 'nombre')
+                documento = _val(row, 'documento')
+                apellidos = _val(row, 'apellidos')
+                email = _val(row, 'email')
+                telefono = _val(row, 'telefono')
+                ficha_col = _val(row, 'ficha')
+                fase_col = _val(row, 'fase')
+                trimestre = _val(row, 'trimestre')
                 if not nombre or not documento:
                     continue
-                aprendiz = Aprendiz.objects.create(
-                    nombres=nombre,
+                nombres_completos = nombre
+                if apellidos:
+                    nombres_completos = f"{nombre} {apellidos}"
+                ficha_obj = default_ficha
+                if ficha_col:
+                    ficha_obj, _ = Ficha.objects.get_or_create(numero=ficha_col)
+                gaes_obj = None  # No asignar GAES automáticamente
+                fase_obj = default_fase
+                if fase_col:
+                    fase_obj, _ = Fase.objects.get_or_create(numero=fase_col)
+                usuario_creado = None
+                if email and '@' in email:
+                    username = re.sub(r'[^a-zA-Z0-9._-]', '', email.split('@')[0])
+                    base_username = username
+                    counter = 1
+                    while User.objects.filter(username=username).exists():
+                        username = f"{base_username}{counter}"
+                        counter += 1
+                    usuario_creado = User.objects.create_user(
+                        username=username,
+                        email=email,
+                        rol='aprendiz',
+                        password=Usuario.objects.make_random_password(),
+                    )
+                aprendiz, created = Aprendiz.objects.update_or_create(
                     documento=documento,
-                    email=email,
-                    propietario=request.user,
+                    defaults={
+                        'nombres': nombres_completos,
+                        'email': email,
+                        'telefono': telefono,
+                        'ficha': ficha_obj,
+                        'gaes': gaes_obj,
+                        'fase': fase_obj,
+                        'usuario': usuario_creado,
+                        'propietario': request.user,
+                    }
                 )
         messages.success(request, f'{len(df)} aprendices importados.')
         return redirect('lista_aprendices')
-    return render(request, 'evaluacion/importar_excel.html')
+    return render(request, 'evaluacion/importar_excel.html', {
+            'fichas_list': fichas_list,
+            'fases': Fase.objects.order_by('numero'),
+        })
 
 @login_required
 def importar_excel_asignar_gaes(request):
@@ -723,19 +802,113 @@ def importar_csv_aprendices(request):
         if not archivo:
             messages.error(request, 'Debe seleccionar un archivo.')
             return redirect('importar_csv_aprendices')
-        df = pd.read_csv(archivo)
+        default_ficha_id = request.POST.get('default_ficha')
+        default_fase_val = request.POST.get('default_fase')
+        default_ficha = None
+        if default_ficha_id:
+            try:
+                default_ficha = Ficha.objects.get(id=default_ficha_id)
+            except Ficha.DoesNotExist:
+                pass
+        default_fase = None
+        if default_fase_val:
+            default_fase, _ = Fase.objects.get_or_create(numero=default_fase_val)
         from django.db import transaction as db_transaction
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
         with db_transaction.atomic():
+            contenido = archivo.read()
+            df = None
+            for sep in [',', ';', '\t']:
+                try:
+                    archivo.seek(0)
+                    df = pd.read_csv(archivo, encoding='utf-8-sig', sep=sep)
+                    if len(df.columns) >= 3:
+                        break
+                    df = None
+                except Exception:
+                    archivo.seek(0)
+                    continue
+            if df is None:
+                messages.error(request, 'No se pudo leer el archivo CSV. Verifica el formato.')
+                return redirect('importar_csv_aprendices')
+            col_map = {}
+            for col in df.columns:
+                c = col.lower().strip()
+                if 'documento' in c or c in ('doc', 'cedula', 'cc', 'nit'):
+                    col_map['documento'] = col
+                elif 'nombre' in c and 'apellido' not in c:
+                    col_map['nombre'] = col
+                elif 'apellido' in c:
+                    col_map['apellidos'] = col
+                elif 'email' in c or 'correo' in c or 'e-mail' in c or 'mail' in c:
+                    col_map['email'] = col
+                elif 'telefono' in c or 'tel' in c:
+                    col_map['telefono'] = col
+                elif 'ficha' in c:
+                    col_map['ficha'] = col
+                elif 'fase' in c:
+                    col_map['fase'] = col
+                elif 'trimestre' in c:
+                    col_map['trimestre'] = col
             for _, row in df.iterrows():
-                nombre = str(row.iloc[0]).strip() if len(row) > 0 else ''
-                documento = str(row.iloc[1]).strip() if len(row) > 1 else ''
-                email = str(row.iloc[2]).strip() if len(row) > 2 else ''
+                nombre = str(row.get(col_map.get('nombre', ''), '')).strip()
+                documento = str(row.get(col_map.get('documento', ''), '')).strip()
+                apellidos = str(row.get(col_map.get('apellidos', ''), '')).strip()
+                email = str(row.get(col_map.get('email', ''), '')).strip()
+                telefono = str(row.get(col_map.get('telefono', ''), '')).strip()
+                ficha_col = str(row.get(col_map.get('ficha', ''), '')).strip()
+                fase_col = str(row.get(col_map.get('fase', ''), '')).strip()
+                trimestre = str(row.get(col_map.get('trimestre', ''), '')).strip()
                 if not nombre or not documento:
                     continue
-                Aprendiz.objects.create(nombres=nombre, documento=documento, email=email, propietario=request.user)
+                nombres_completos = nombre
+                if apellidos:
+                    nombres_completos = f"{nombre} {apellidos}"
+                ficha_obj = default_ficha
+                if ficha_col:
+                    ficha_obj, _ = Ficha.objects.get_or_create(numero=ficha_col)
+                gaes_obj = None  # No asignar GAES automáticamente
+                fase_obj = default_fase
+                if fase_col:
+                    fase_obj, _ = Fase.objects.get_or_create(numero=fase_col)
+                usuario_creado = None
+                if email and '@' in email:
+                    username = re.sub(r'[^a-zA-Z0-9._-]', '', email.split('@')[0])
+                    base_username = username
+                    counter = 1
+                    while User.objects.filter(username=username).exists():
+                        username = f"{base_username}{counter}"
+                        counter += 1
+                    usuario_creado = User.objects.create_user(
+                        username=username,
+                        email=email,
+                        rol='aprendiz',
+                        password=Usuario.objects.make_random_password(),
+                    )
+                Aprendiz.objects.update_or_create(
+                    documento=documento,
+                    defaults={
+                        'nombres': nombres_completos,
+                        'email': email,
+                        'telefono': telefono,
+                        'ficha': ficha_obj,
+                        'gaes': gaes_obj,
+                        'fase': fase_obj,
+                        'usuario': usuario_creado,
+                        'propietario': request.user,
+                    }
+                )
         messages.success(request, 'CSV importado.')
         return redirect('lista_aprendices')
-    return render(request, 'evaluacion/importar_csv_aprendices.html')
+    if request.user.rol == 'administrador':
+        fichas_list = Ficha.objects.all().order_by('numero')
+    else:
+        fichas_list = Ficha.objects.filter(instructor=request.user).order_by('numero')
+    return render(request, 'evaluacion/importar_csv_aprendices.html', {
+        'fichas_list': fichas_list,
+        'fases': Fase.objects.order_by('numero'),
+    })
 
 @login_required
 def bloquear_aprendiz(request, aprendiz_id):

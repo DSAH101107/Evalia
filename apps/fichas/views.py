@@ -127,43 +127,16 @@ def ver_gaes_ficha(request, ficha_id):
 @login_required
 def aprendices_por_ficha(request, ficha_id):
     """Lista de aprendices pertenecientes a una ficha específica (solo para administradores)."""
-    print(f"DEBUG: aprendices_por_ficha called with ficha_id={ficha_id}, user={request.user}, rol={getattr(request.user, 'rol', 'No rol')}")
-    
     if request.user.rol != 'administrador':
-        print(f"DEBUG: Permission denied. User rol is {request.user.rol}")
         return HttpResponseForbidden('No tienes acceso a esta sección')
     
     ficha = get_object_or_404(Ficha, id=ficha_id)
-    print(f"DEBUG: Found ficha: {ficha}")
-    
-    # Let's also check what's in the database directly
-    all_aprendices = Aprendiz.objects.all()
-    print(f"DEBUG: Total aprendices in DB: {all_aprendices.count()}")
-    
-    aprendices_with_ficha = Aprendiz.objects.filter(ficha__isnull=False)
-    print(f"DEBUG: Aprendices with ficha set: {aprendices_with_ficha.count()}")
-    
-    aprendices_for_this_ficha = Aprendiz.objects.filter(ficha=ficha)
-    print(f"DEBUG: Aprendices for ficha {ficha.id}: {aprendices_for_this_ficha.count()}")
-    
-    for i, aprendiz in enumerate(aprendices_for_this_ficha):
-        print(f"DEBUG: Aprendiz {i+1}: {aprendiz.nombres} {aprendiz.apellidos}, ficha={aprendiz.ficha}")
-    
     aprendices = Aprendiz.objects.filter(ficha=ficha).select_related('ficha', 'gaes', 'fase', 'usuario')
-    print(f"DEBUG: Query returned {aprendices.count()} aprendices")
     
-    for i, aprendiz in enumerate(aprendices):
-        print(f"DEBUG: Aprendiz {i+1}: {aprendiz.nombres} {aprendiz.apellidos}, ficha={aprendiz.ficha}")
-    
-    # Also add to context for debugging in template
-    context = {
+    return render(request, 'fichas/aprendices_por_ficha.html', {
         'ficha': ficha,
         'aprendices': aprendices,
-        'debug_count': aprendices.count()
-    }
-    
-    print(f"DEBUG: Rendering template with context")
-    return render(request, 'fichas/aprendices_por_ficha.html', context)
+    })
 
 @login_required
 def crear_ficha(request):
@@ -349,17 +322,23 @@ def editar_ficha(request, pk):
 
 @login_required
 def eliminar_ficha(request, pk):
-    """Eliminar una ficha."""
+    """Eliminar una ficha y sus aprendices asociados."""
     if request.user.rol != 'administrador':
         return HttpResponseForbidden('No tienes acceso a esta sección')
 
     ficha = get_object_or_404(Ficha, pk=pk)
     if request.method == 'POST':
+        aprendices = list(Aprendiz.objects.filter(ficha=ficha).select_related('usuario'))
+        aprendices_eliminados = len(aprendices)
+        for aprendiz in aprendices:
+            if aprendiz.usuario:
+                aprendiz.usuario.delete()
         ficha.delete()
-        messages.success(request, 'Ficha eliminada exitosamente.')
+        messages.success(request, f'Ficha eliminada exitosamente. Se eliminaron {aprendices_eliminados} aprendices.')
         return redirect('lista_fichas')
     return render(request, 'fichas/eliminar_ficha.html', {
-        'ficha': ficha
+        'ficha': ficha,
+        'cant_aprendices': ficha.aprendices.count()
     })
 
 @login_required

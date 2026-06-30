@@ -89,17 +89,48 @@
         </div>
         {% endif %}
 
-        {# ---------------- APRENDICES ---------------- #}
-        {% if usuarios_aprendices|length > 0 or not filtro_rol %}
+        {# ---------------- APRENDICES (FICHAS) ---------------- #}
+        {% if fichas_con_aprendices|length > 0 or usuarios_aprendices|length > 0 or not filtro_rol %}
         <div class="accordion-item">
             <h2 class="accordion-header" id="headingAprendices">
                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAprendices" aria-expanded="{% if filtro_rol == 'aprendiz' %}true{% else %}false{% endif %}" aria-controls="collapseAprendices">
-                    🎒 Aprendices ({{ usuarios_aprendices|length }})
+                    🎒 Aprendices ({{ fichas_con_aprendices|length }} fichas / {{ usuarios_aprendices|length }} usuarios)
                 </button>
             </h2>
             <div id="collapseAprendices" class="accordion-collapse collapse{% if filtro_rol == 'aprendiz' %} show{% endif %}" aria-labelledby="headingAprendices" data-bs-parent="#usuariosAccordion">
                 <div class="accordion-body">
-{% include "usuarios/partials/tabla_usuarios.html" with usuarios=usuarios_aprendices %}
+                    {% if fichas_con_aprendices %}
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Ficha</th>
+                                <th>Programa</th>
+                                <th>Aprendices</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ficha in fichas_con_aprendices %}
+                            <tr>
+                                <td><strong>{{ ficha.numero }}</strong></td>
+                                <td>{{ ficha.programa|default:"—" }}</td>
+                                <td>{{ ficha.num_aprendices }}</td>
+                                <td>
+                                    <a href="{% url 'aprendices_por_ficha' ficha.id %}" class="btn btn-primary btn-sm">Ver</a>
+                                    <form action="{% url 'eliminar_ficha' ficha.id %}" method="post" style="display:inline;" onsubmit="return confirm('¿Eliminar la ficha {{ ficha.numero }}? Esta acción no se puede deshacer.');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% elif usuarios_aprendices %}
+                    {% include "usuarios/partials/tabla_usuarios.html" with usuarios=usuarios_aprendices %}
+                    {% else %}
+                    <p class="empty-state" style="text-align: center; color: var(--gris-texto); padding: 2rem;">No hay fichas con aprendices registradas.</p>
+                    {% endif %}
                 </div>
             </div>
         </div>

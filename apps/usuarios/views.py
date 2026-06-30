@@ -692,6 +692,11 @@ def lista_usuarios_por_grupos(request):
     usuarios_instructores_jurados = Usuario.objects.filter(rol__in=['instructor', 'jurado']).order_by('rol', 'username')
     usuarios_aprendices = Usuario.objects.filter(rol='aprendiz').order_by('username')
 
+    from django.db.models import Count
+    fichas_con_aprendices = Ficha.objects.annotate(
+        num_aprendices=Count('aprendices', distinct=True)
+    ).filter(num_aprendices__gt=0).order_by('numero')
+
     # Aplicar búsqueda general
     if search:
         q_search = (
@@ -735,6 +740,7 @@ def lista_usuarios_por_grupos(request):
         'usuarios_admin': usuarios_admin,
         'usuarios_instructores_jurados': usuarios_instructores_jurados,
         'usuarios_aprendices': usuarios_aprendices,
+        'fichas_con_aprendices': fichas_con_aprendices,
         'search': search,
         'filtro_rol': filtro_rol,
         'filtro_activo': filtro_activo,

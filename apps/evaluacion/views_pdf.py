@@ -22,9 +22,9 @@ from io import BytesIO
 @login_required
 def importar_pdf_aprendices(request):
     if request.method == 'GET':
-        gaes_list = GAES.objects.order_by('nombre')
+        fichas_list = Ficha.objects.order_by('numero')
         return render(request, 'evaluacion/importar_pdf_aprendices.html', {
-            'gaes_list': gaes_list,
+            'fichas_list': fichas_list,
             'fase_choices': [str(f) for f in Fase.objects.order_by('numero').values_list('numero', flat=True)],
         })
 
@@ -83,22 +83,19 @@ def importar_pdf_aprendices(request):
         col_nombre = pick_col('nombre', 'nombres')
         col_apellido = pick_col('apellido', 'apellidos')
         col_programa = pick_col('programa de formacion', 'programa de formacion', 'programa')
-        col_gaes = pick_col('gaes')
         col_ficha = pick_col('ficha')
         col_trimestre = pick_col('trimestre')
 
-        logger.debug("Columnas detectadas -> nombre: %s, apellido: %s, programa: %s, gaes: %s, ficha: %s, trimestre: %s",
-                     col_nombre, col_apellido, col_programa, col_gaes, col_ficha, col_trimestre)
+        logger.debug("Columnas detectadas -> nombre: %s, apellido: %s, programa: %s, ficha: %s, trimestre: %s",
+                     col_nombre, col_apellido, col_programa, col_ficha, col_trimestre)
 
-        default_gaes = request.POST.get('default_gaes', '').strip()
         default_fase_id = request.POST.get('default_fase', '').strip()
-        logger.debug("Default GAES: '%s', Default Fase ID: '%s'", default_gaes, default_fase_id)
+        default_ficha_val = request.POST.get('default_ficha', '').strip()
 
         for i, (_, row) in enumerate(df.iterrows()):
             nombre = str(row.get(col_nombre, '')).strip() if col_nombre else ''
             apellido = str(row.get(col_apellido, '')).strip() if col_apellido else ''
             programa = str(row.get(col_programa, '')).strip() if col_programa else ''
-            gaes_val = str(row.get(col_gaes, '')).strip() if col_gaes else ''
             ficha_val = str(row.get(col_ficha, '')).strip() if col_ficha else ''
             trimestre = str(row.get(col_trimestre, '')).strip() if col_trimestre else ''
 
@@ -113,22 +110,15 @@ def importar_pdf_aprendices(request):
             documento = re.sub(r'[^A-Za-z0-9]', '', documento)[:20]
             logger.debug("Fila %d -> documento generado: '%s'", i, documento)
 
-            gaes_obj = None
-            if gaes_val:
-                gaes_obj, _ = GAES.objects.get_or_create(nombre=gaes_val, defaults={'descripcion': ''})
-                logger.debug("Fila %d -> GAES encontrado/creado: '%s' (id=%s)", i, gaes_val, gaes_obj.id)
-            elif default_gaes:
-                gaes_obj, _ = GAES.objects.get_or_create(nombre=default_gaes, defaults={'descripcion': ''})
-                logger.debug("Fila %d -> GAES default usado: '%s' (id=%s)", i, default_gaes, gaes_obj.id)
-
+            # Get or create ficha_obj (from PDF or default)
             ficha_obj = None
             if ficha_val:
-                if gaes_obj:
-                    ficha_obj, _ = Ficha.objects.get_or_create(numero=ficha_val, defaults={'gaes': gaes_obj})
-                else:
-                    ficha_obj, _ = Ficha.objects.get_or_create(numero=ficha_val)
-                logger.debug("Fila %d -> Ficha encontrada/creada: '%s' (id=%s, gaes_id=%s)",
-                             i, ficha_val, ficha_obj.id, ficha_obj.gaes_id)
+                ficha_obj, _ = Ficha.objects.get_or_create(numero=ficha_val)
+            elif default_ficha_val:
+                ficha_obj, _ = Ficha.objects.get_or_create(numero=default_ficha_val)
+
+            # No asignar GAES automáticamente - el instructor lo hará después
+            gaes_obj = None
 
             fase_obj = None
             if default_fase_id:
@@ -141,29 +131,31 @@ def importar_pdf_aprendices(request):
             # Asignar propietario solo si el usuario es instructor
             propietario = request.user if request.user.rol == 'instructor' else None
 
+            aprendiz_defaults = {
+                'nombres': nombre,
+                'apellidos': apellido,
+                'programa': programa,
+                'gaes': gaes_obj,
+                'ficha': ficha_obj,
+                'fase': fase_obj,
+                'trimestre': trimestre if trimestre else '',
+                'email': f"{nombre.lower()}.{apellido.lower()}@sena.edu.co",
+                'telefono': '',
+            }
+
             aprendiz, created_new = Aprendiz.objects.update_or_create(
                 documento=documento,
-                defaults={
-                    'nombres': nombre,
-                    'apellidos': apellido,
-                    'programa': programa,
-                    'gaes': gaes_obj,
-                    'ficha': ficha_obj,
-                    'fase': fase_obj,
-                    'trimestre': trimestre if trimestre else '',
-                    'email': f"{nombre.lower()}.{apellido.lower()}@sena.edu.co",
-                    'telefono': '',
-                }
+                defaults=aprendiz_defaults,
             )
+            
+            if propietario and not aprendiz.propietario:
+                aprendiz.propietario = propietario
+                aprendiz.save(update_fields=['propietario'])
+                logger.debug("Fila %d -> Propietario asignado: usuario_id=%s", i, propietario.id)
+
             logger.info("Fila %d -> Aprendiz %s (documento='%s', id=%d, fase_id=%s)",
                         i, 'CREADO' if created_new else 'ACTUALIZADO', documento, aprendiz.id,
                         aprendiz.fase_id)
-
-            # Actualizar propietario si es instructor y no lo tiene asignado
-            if propietario and not aprendiz.propietario:
-                aprendiz.propietario = propietario
-                aprendiz.save()
-                logger.debug("Fila %d -> Propietario asignado: usuario_id=%s", i, propietario.id)
 
             username = documento
             temp_password = 'aprendiz123'

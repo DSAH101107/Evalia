@@ -160,9 +160,21 @@ def detalle_gaes(request, pk):
         return HttpResponseForbidden()
     aprendices_en_gaes = gaes.aprendices.filter(gaes=gaes)
     aprendices_disponibles = Aprendiz.objects.filter(
-        gaes__isnull=True, usuario__rol=Rol.APRENDIZ
-    ).select_related('ficha', 'usuario').order_by('nombres', 'apellidos')
+        gaes__isnull=True
+    ).filter(
+        Q(usuario__rol=Rol.APRENDIZ) | Q(usuario__isnull=True)
+    )
+    if request.user.rol == 'instructor':
+        aprendices_disponibles = aprendices_disponibles.filter(
+            Q(ficha=gaes.ficha) | Q(ficha__isnull=True, propietario=request.user)
+        )
+    aprendices_disponibles = aprendices_disponibles.select_related('ficha').order_by('nombres', 'apellidos')
     gaes_list = GAES.objects.exclude(pk=pk).order_by('nombre')
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info("detalle_gaes pk=%s user=%s rol=%s disponibles=%d en_gaes=%d",
+                pk, request.user, request.user.rol,
+                aprendices_disponibles.count(), aprendices_en_gaes.count())
     return render(request, 'gaes/detalle_gaes.html', {
         'gaes': gaes,
         'aprendices_en_gaes': aprendices_en_gaes,

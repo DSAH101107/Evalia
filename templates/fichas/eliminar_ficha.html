@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Eliminar Ficha {{ ficha.numero }} - Sistema SENA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'detalle_ficha' ficha.pk %}" class="btn btn-outline">↩️ Volver</a>
+</div>
+
+<h1>Eliminar Ficha {{ ficha.numero }}</h1>
+
+<div class="card">
+    <p>¿Está seguro de eliminar la ficha <strong>{{ ficha.numero }}</strong>?</p>
+    {% if cant_aprendices > 0 %}
+    <p class="alert alert-warning">Esto eliminará también a los {{ cant_aprendices }} aprendices asociados.</p>
+    {% endif %}
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-actions">
+            <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+            <a href="{% url 'detalle_ficha' ficha.pk %}" class="btn btn-outline">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
