@@ -28,10 +28,14 @@
     <h3>Detalle de Evaluaciones (GAES: {{ resultado.aprendiz.gaes.nombre|default:"Sin GAES" }})</h3>
     {% if evaluaciones %}
         {% for eval in evaluaciones %}
-        <div class="evaluation-detail" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
+        <div class="evaluation-detail" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;{% if eval.estado == 'cancelada' %} background: #fafafa; opacity: 0.85;{% endif %}">
             <h4>Checklist: {{ eval.checklist.titulo }}</h4>
             <p><strong>Jurado:</strong> {{ eval.juror.username }}</p>
             <p><strong>Fecha:</strong> {{ eval.fecha|date:"d/m/Y H:i" }}</p>
+            <p><strong>Estado:</strong> {{ eval.get_estado_display }}</p>
+            {% if eval.observaciones %}
+            <p><strong>Observaciones:</strong> {{ eval.observaciones }}</p>
+            {% endif %}
             
             <table class="data-table" style="margin-top: 0.5rem;">
                 <thead>
@@ -54,7 +58,11 @@
                                 ❌ No
                             {% endif %}
                         </td>
-                        <td>{{ item.observaciones|default:"-" }}</td>
+                        <td>
+                            {% if item.observaciones %}
+                                {{ item.observaciones }}
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -62,7 +70,7 @@
         </div>
         {% endfor %}
     {% else %}
-        <p>No hay evaluaciones completadas para este aprendiz.</p>
+        <p>No se encontraron evaluaciones registradas para este aprendiz.</p>
     {% endif %}
 </div>
 

@@ -22,17 +22,20 @@
             <img src="{% static 'images/Logotipo_SENA.png' %}" alt="SENA" class="header-logo">
             <span class="header-title">SENA</span>
         </div>
+        <button class="mobile-menu-toggle" aria-label="Abrir menú" onclick="toggleMobileMenu()">
+            ☰
+        </button>
         {% if user.is_authenticated %}
-        <nav class="header-nav">
+        <nav class="header-nav home-nav" id="mobileNav">
             {% if user.rol == 'administrador' %}
                 <a href="{% url 'dashboard_admin' %}" class="nav-link">Dashboard</a>
 <select onchange="window.location=this.value" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:0.35rem 0.75rem;font-size:0.875rem;font-weight:500;cursor:pointer;margin-right:0.15rem;">
-                        <option value="" disabled selected>Configuración</option>
-                        <option value="{% url 'lista_fases' %}">🔢 Fases</option>
-                        <option value="{% url 'lista_competencias' %}">📚 Competencias</option>
-                        <option value="{% url 'lista_trimestres' %}">📅 Trimestres</option>
-                        <option value="{% url 'lista_fichas' %}">📁 Fichas</option>
-                    </select>
+                    <option value="" disabled selected>Configuración</option>
+                    <option value="{% url 'lista_fases' %}">🔢 Fases</option>
+                    <option value="{% url 'lista_competencias' %}">📚 Competencias</option>
+                    <option value="{% url 'lista_trimestres' %}">📅 Trimestres</option>
+                    <option value="{% url 'lista_fichas' %}">📁 Fichas</option>
+                </select>
                 <a href="{% url 'lista_usuarios_por_grupos' %}" class="nav-link">Usuarios</a>
                 <a href="{% url 'lista_evaluaciones' %}" class="nav-link">Evaluaciones</a>
                 <a href="{% url 'lista_checklists' %}" class="nav-link">Checklists</a>
@@ -43,21 +46,22 @@
                 <a href="{% url 'lista_evaluaciones' %}" class="nav-link">Evaluaciones</a>
                 <a href="{% url 'lista_checklists' %}" class="nav-link">Checklists</a>
                 <a href="{% url 'lista_resultados' %}" class="nav-link">Resultados</a>
-            {% elif user.rol == 'jurado' %}
+{% elif user.rol == 'jurado' %}
                  <a href="{% url 'dashboard_jurado' %}" class="nav-link">Dashboard</a>
+                 <a href="{% url 'jurado_gaes' %}" class="nav-link">GAES</a>
                  <a href="{% url 'invitaciones_jurado' %}" class="nav-link">Invitaciones</a>
-                <a href="{% url 'lista_evaluaciones' %}" class="nav-link">Evaluaciones</a>
-                <a href="{% url 'lista_checklists' %}" class="nav-link">Checklists</a>
+                 <a href="{% url 'lista_evaluaciones' %}" class="nav-link">Evaluaciones</a>
+                 <a href="{% url 'lista_checklists' %}" class="nav-link">Checklists</a>
             {% elif user.rol == 'aprendiz' %}
                 <a href="{% url 'dashboard_aprendiz' %}" class="nav-link">Dashboard</a>
                 <a href="{% url 'lista_resultados' %}" class="nav-link">Resultados</a>
             {% endif %}
         </nav>
         <div class="header-actions">
-            <span class="user-pill">
+            <a href="{% url 'perfil_usuario' %}" class="user-pill" style="text-decoration: none; color: inherit;">
                 <span class="avatar">{{ request.user.get_full_name|default:request.user.username|slice:":1" }}</span>
                 {{ request.user.get_full_name|default:request.user.username }}
-            </span>
+            </a>
             <button onclick="doLogout(event)" class="btn btn-danger btn-sm" style="padding:0.3rem 0.75rem; border-radius:8px; cursor:pointer;">Cerrar sesión</button>
         </div>
         {% endif %}
@@ -78,6 +82,20 @@ window.doLogout = async function(evt) {
     } catch(ignored) { }
     window.location.replace('/usuarios/login/?logout=1');
 };
+
+window.toggleMobileMenu = function() {
+    const nav = document.getElementById('mobileNav');
+    nav.classList.toggle('show');
+};
+
+// Close mobile menu when clicking outside
+document.addEventListener('click', function(e) {
+    const nav = document.getElementById('mobileNav');
+    const toggle = document.querySelector('.mobile-menu-toggle');
+    if (nav && toggle && !nav.contains(e.target) && !toggle.contains(e.target)) {
+        nav.classList.remove('show');
+    }
+});
 </script>
 
 {# ======== MAIN CONTENT ======== #}

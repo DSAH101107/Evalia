@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}GAES para Evaluar - Jurado{% endblock %}
+
+{% block content %}
+<div class="page-layout">
+    <div class="page-header">
+        <h1>👥 GAES para Evaluar</h1>
+        <p class="subtitle subtitle-blanco">Selecciona un GAES para ver sus aprendices y realizar la evaluación</p>
+    </div>
+
+    <div style="margin-bottom: 1rem;">
+        <a href="{% url 'dashboard_jurado' %}" class="btn btn-outline">🏠 Volver al Dashboard</a>
+    </div>
+
+    <div class="card">
+        {% if gaes_list %}
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>GAES</th>
+                        <th>Aprendices</th>
+                        <th>Checklist Disponible</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for gaes in gaes_list %}
+                    <tr>
+                        <td>{{ gaes.nombre }}</td>
+                        <td>{{ gaes.aprendices_count }}</td>
+                        <td>
+                            {% with inv=gaes.fichas.first.invitaciones.all|first %}
+                                {% if inv.checklist and inv.estado == 'aceptada' %}
+                                    {{ inv.checklist.titulo }}
+                                {% endif %}
+                            {% endwith %}
+                        </td>
+                        <td>
+                            <a href="{% url 'jurado_evaluaciones_gaes' gaes.id %}" class="btn btn-primary btn-sm">Ver Resultados</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="empty-state">No hay GAES disponibles para evaluar.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

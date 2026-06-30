@@ -46,6 +46,22 @@
             </div>
         </div>
 
+        <div class="form-group">
+            <label for="checklist_id">
+                <span style="font-size:1.2rem;">📋</span> Checklist (opcional)
+            </label>
+            <select name="checklist_id" id="checklist_id" class="form-select">
+                <option value="">-- Seleccionar Checklist --</option>
+                {% if checklists %}
+                {% for checklist in checklists %}
+                <option value="{{ checklist.id }}">{{ checklist.titulo }}</option>
+                {% endfor %}
+                {% else %}
+                <option value="" disabled>No hay checklists disponibles</option>
+                {% endif %}
+            </select>
+        </div>
+
         <div class="form-row">
             <div class="form-group">
                 <label for="fecha_evaluacion">

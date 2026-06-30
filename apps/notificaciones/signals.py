@@ -92,16 +92,17 @@ def invitacion_cambiada(sender, instance, created, **kwargs):
             url_relacionada=f'/usuarios/dashboard/jurado/',
         )
 
-    elif instance.estado == Invitacion.ESTADO_RECHAZADA and instance.instructor:
+    elif instance.estado == Invitacion.ESTADO_RECHAZADA and instance.instructor and instance.instructor_invitado:
+        emisor = instance.instructor_invitado
         _crear_notificacion(
             destinatario=instance.instructor,
             tipo=Notificacion.TIPO_RECHAZO,
             titulo='Invitacion rechazada',
             mensaje=(
-                f'{instance.instructor_invitado.username or "El usuario"} ha rechazado '
+                f'{emisor.username} ha rechazado '
                 f'tu invitacion para ser jurado.'
             ),
-            emisor=instance.instructor_invitado,
+            emisor=emisor,
             url_relacionada=f'/usuarios/instructores/',
         )
 

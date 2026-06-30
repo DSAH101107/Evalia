@@ -1,51 +1,134 @@
 {% extends "base.html" %}
 
-{% block title %}Evaluaciones del GAES {{ gaes.nombre }} - Sistema SENA{% endblock %}
+{% block title %}Resultados del GAES {{ gaes.nombre }} - Sistema SENA{% endblock %}
 
 {% block content %}
 <div style="margin-bottom: 1rem;">
+    <a href="{% url 'jurado_gaes' %}" class="btn btn-outline">👥 Ver GAES</a>
     <a href="{% url 'dashboard_jurado' %}" class="btn btn-outline">🏠 Volver al Dashboard</a>
 </div>
 
 <div class="page-header">
-    <h1>📝 Evaluaciones del GAES: {{ gaes.nombre }}</h1>
-    <p class="subtitle">Haz clic en "Evaluar" para calificar a cada aprendiz</p>
+    <h1>📊 Resultados del GAES: {{ gaes.nombre }}</h1>
+    <p class="subtitle subtitle-blanco">Formulario de Reporte PDF - Selecciona el formato de descarga</p>
 </div>
 
 <div class="card">
-    {% if evaluaciones %}
+    {% if aprendices_con_resultado %}
     <table class="data-table">
         <thead>
             <tr>
                 <th>Aprendiz</th>
-                <th>Checklist</th>
-                <th>Estado</th>
-                <th>Acciones</th>
+                <th>Calificación</th>
+                <th>Fecha</th>
             </tr>
         </thead>
         <tbody>
-            {% for evaluacion in evaluaciones %}
+            {% for item in aprendices_con_resultado %}
             <tr>
-                <td>{{ evaluacion.aprendiz.nombres }} {{ evaluacion.aprendiz.apellidos }}</td>
-                <td>{{ evaluacion.checklist.titulo }}</td>
+                <td>{{ item.aprendiz.nombres }} {{ item.aprendiz.apellidos }}</td>
                 <td>
-                    {% if evaluacion.estado == 'completada' %}
-                        <span class="badge badge-success">Completada</span>
-                    {% elif evaluacion.estado == 'pendiente' %}
-                        <span class="badge badge-warning">Pendiente</span>
+                    {% if item.resultado %}
+                        <span class="badge">
+                            {% if item.resultado.promedio >= 9 %}✅
+                            {% elif item.resultado.promedio >= 7 %}🟡
+                            {% else %}🔴{% endif %}{{ item.resultado.calificacion_final }}
+                        </span>
                     {% else %}
-                        <span class="badge">{{ evaluacion.estado }}</span>
+                        <span class="badge badge-warning">Pendiente</span>
                     {% endif %}
                 </td>
                 <td>
-                    <a href="{% url 'evaluar_aprendiz' evaluacion.id %}" class="btn btn-primary btn-sm">📝 Evaluar</a>
+                    {% if item.resultado %}{{ item.resultado.fecha_cierre|date:"d/m/Y" }}{% else %}—{% endif %}
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+    
+    <div style="margin-top: 2rem; padding: 1.5rem; background: linear-gradient(135deg, #f0fdf4 0%, #e8f5f2 100%); border-radius: 12px; border: 2px solid var(--verde-claro);">
+        <h3 style="margin-top: 0; color: var(--verde-sena);">📄 Formato de Reporte PDF</h3>
+        <p><strong>Selecciona el formato de descarga:</strong></p>
+        
+        <table style="width: 100%; margin: 1rem 0; border-collapse: collapse;">
+            <tr>
+                <td style="padding: 1rem; border: 1px solid #d1f5d9; border-radius: 8px; background: white;">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="formato_pdf" id="formato_gaes" value="gaes" checked onchange="toggleAprendizSelect()">
+                        <label class="form-check-label" for="formato_gaes" style="font-weight: 600; color: var(--verde-sena);">
+                            📊 Por GAES — Reporte completo con todos los aprendices
+                        </label>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td style="padding: 1rem; border: 1px solid #d1f5d9; border-radius: 8px; background: white; margin-top: 0.75rem;">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="formato_pdf" id="formato_aprendiz" value="aprendiz" onchange="toggleAprendizSelect()">
+                        <label class="form-check-label" for="formato_aprendiz" style="font-weight: 600; color: var(--verde-sena);">
+                            👤 Por Aprendiz — Reporte individual de un aprendiz
+                        </label>
+                    </div>
+                </td>
+            </tr>
+            <tr id="aprendiz-select-row" style="display: none;">
+                <td style="padding: 1rem;">
+                    <div class="form-group">
+                        <label for="aprendiz_pdf_id"><strong>Seleccionar Aprendiz:</strong></label>
+                        <select id="aprendiz_pdf_id" class="form-select" style="margin-top: 0.5rem;">
+                            <option value="">-- Selecciona un aprendiz --</option>
+                            {% for item in aprendices_con_resultado %}
+                            <option value="{{ item.aprendiz.id }}">{{ item.aprendiz.nombres }} {{ item.aprendiz.apellidos }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </td>
+            </tr>
+        </table>
+        
+        <div class="form-actions" style="margin-top: 1rem;">
+            <button type="button" class="btn btn-outline" onclick="history.back()">❌ Cancelar</button>
+            <button type="button" class="btn btn-primary" onclick="confirmarDescargaPDF()" style="padding: 0.75rem 2rem;">
+                📥 Descargar PDF
+            </button>
+        </div>
+    </div>
     {% else %}
-    <p class="empty-state">No hay evaluaciones creadas para este GAES.</p>
+    <p class="empty-state">Este GAES no ha sido evaluado aún.</p>
     {% endif %}
 </div>
+
+<script>
+function toggleAprendizSelect() {
+    const formato = document.querySelector('input[name="formato_pdf"]:checked').value;
+    const selectRow = document.getElementById('aprendiz-select-row');
+    if (formato === 'aprendiz') {
+        selectRow.style.display = 'table-row';
+    } else {
+        selectRow.style.display = 'none';
+    }
+}
+
+function confirmarDescargaPDF() {
+    const formato = document.querySelector('input[name="formato_pdf"]:checked').value;
+    const gaesId = {{ gaes.id }};
+    const checklistId = {{ checklist_id|default:0 }};
+    
+    if (checklistId == 0) {
+        alert('No hay checklist disponible para este GAES.');
+        return;
+    }
+    
+    if (formato === 'aprendiz') {
+        const aprendizId = document.getElementById('aprendiz_pdf_id').value;
+        if (!aprendizId) {
+            alert('Selecciona un aprendiz para descargar el reporte individual.');
+            return;
+        }
+        window.location.href = `/evaluacion/gaes/${gaesId}/pdf/${checklistId}/?aprendiz_id=${aprendizId}`;
+    } else {
+        window.location.href = `/evaluacion/gaes/${gaesId}/pdf/${checklistId}/`;
+    }
+}
+</script>
 {% endblock %}

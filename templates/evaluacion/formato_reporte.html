@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Formato de Reporte - Evaluación completada{% endblock %}
+
+{% block content %}
+<div class="page-layout">
+    <div class="page-header">
+        <h1>📄 Formato de Reporte PDF</h1>
+    </div>
+
+    <div class="card">
+        <h3>Evaluaciones guardadas exitosamente</h3>
+        <p>Se han completado {{ creadas }} evaluaciones para el GAES: <strong>{{ gaes.nombre }}</strong></p>
+        
+        <p><strong>Selecciona el formato de descarga:</strong></p>
+        
+        <div class="form-group" style="margin: 1.5rem 0;">
+            <div class="form-check" style="margin-bottom: 0.75rem;">
+                <input class="form-check-input" type="radio" name="formato_pdf" id="formato_gaes" value="gaes" checked onchange="toggleAprendizSelect()">
+                <label class="form-check-label" for="formato_gaes">
+                    <strong>Por GAES</strong> — Reporte completo con todos los aprendices
+                </label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="formato_pdf" id="formato_aprendiz" value="aprendiz" onchange="toggleAprendizSelect()">
+                <label class="form-check-label" for="formato_aprendiz">
+                    <strong>Por Aprendiz</strong> — Reporte individual de un aprendiz
+                </label>
+            </div>
+        </div>
+        
+        <div class="form-group" id="aprendiz-select-group" style="display: none; margin-bottom: 1rem;">
+            <label for="aprendiz_pdf_id">Seleccionar Aprendiz:</label>
+            <select id="aprendiz_pdf_id" class="form-select">
+                <option value="">-- Selecciona un aprendiz --</option>
+                {% for aprendiz in gaes.aprendices.all %}
+                <option value="{{ aprendiz.id }}">{{ aprendiz.nombres }} {{ aprendiz.apellidos }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-actions" style="margin-top: 1.5rem;">
+            <button type="button" class="btn btn-outline" onclick="history.back()">Cancelar</button>
+            <button type="button" class="btn btn-primary" onclick="confirmarDescargaPDF()">Descargar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleAprendizSelect() {
+    const formato = document.querySelector('input[name="formato_pdf"]:checked').value;
+    const selectGroup = document.getElementById('aprendiz-select-group');
+    if (formato === 'aprendiz') {
+        selectGroup.style.display = 'block';
+    } else {
+        selectGroup.style.display = 'none';
+    }
+}
+
+function confirmarDescargaPDF() {
+    const formato = document.querySelector('input[name="formato_pdf"]:checked').value;
+    const gaesId = {{ gaes.id }};
+    const checklistId = {{ checklist.id }};
+
+    if (formato === 'aprendiz') {
+        const aprendizId = document.getElementById('aprendiz_pdf_id').value;
+        if (!aprendizId) {
+            alert('Selecciona un aprendiz para descargar el reporte individual.');
+            return;
+        }
+        window.location.href = `/evaluacion/gaes/${gaesId}/pdf/${checklistId}/?aprendiz_id=${aprendizId}`;
+    } else {
+        window.location.href = `/evaluacion/gaes/${gaesId}/pdf/${checklistId}/`;
+    }
+}
+</script>
+{% endblock %}

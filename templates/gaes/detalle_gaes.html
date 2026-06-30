@@ -28,17 +28,15 @@
     
     <div class="form-actions">
         <a href="{% url 'editar_gaes' gaes.pk %}" class="btn btn-primary">Editar</a>
-        {% if request.user.rol in 'administrador,instructor,jurado' %}
-            {% if aprendices_en_gaes %}
-            <a href="{% url 'evaluar_gaes' gaes.pk %}" class="btn btn-success">📋 Evaluar GAES</a>
-            {% else %}
-            <button class="btn btn-secondary" disabled title="Sin aprendices para evaluar">📋 Evaluar GAES</button>
-            {% endif %}
+        {% if user.rol == 'administrador' and aprendices_en_gaes %}
+        <a href="{% url 'evaluar_gaes' gaes.pk %}" class="btn btn-success">📋 Evaluar GAES</a>
         {% endif %}
+        {% if user.rol == 'administrador' %}
         <form action="{% url 'eliminar_gaes' gaes.pk %}" method="post" style="display:inline;">
             {% csrf_token %}
             <button type="submit" class="btn btn-danger" onclick="return confirm('¿Está seguro de eliminar el GAES {{ gaes.nombre }}?')">Eliminar GAES</button>
         </form>
+        {% endif %}
     </div>
 </div>
 

@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import HttpResponseForbidden, JsonResponse
 from django.db import models
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.utils import timezone
 from django.apps import apps
 from .models import Competencia, Fase, Checklist, ChecklistItem
@@ -11,6 +11,7 @@ from apps.gaes.models import GAES
 from apps.fichas.models import Ficha
 from apps.trimestres.models import Trimestre
 from apps.usuarios.models import Usuario, Rol
+from apps.evaluacion.models import Invitacion, Aprendiz
 
 
 # ==========================================================
@@ -81,9 +82,34 @@ COMPETENCIA_PERMISOS = ['administrador', 'instructor', 'jurado']
 def lista_competencias(request):
     if request.user.rol not in COMPETENCIA_PERMISOS:
         return HttpResponseForbidden()
-    competencias = Competencia.objects.select_related(
-        'fase', 'ficha', 'trimestre'
-    ).order_by('codigo')
+    
+    if request.user.rol == 'administrador' or request.user.is_superuser:
+        competencias = Competencia.objects.select_related(
+            'fase', 'ficha', 'trimestre'
+        ).order_by('codigo')
+    elif request.user.rol == 'instructor':
+        mis_fichas_ids = set(Ficha.objects.filter(instructor=request.user).values_list('id', flat=True))
+        inv_fichas_ids = Invitacion.objects.filter(
+            Q(instructor_invitado=request.user) | Q(instructores_jurados=request.user),
+            estado=Invitacion.ESTADO_ACEPTADA
+        ).values_list('ficha_id', flat=True).distinct()
+        mis_fichas_ids |= set(inv_fichas_ids)
+        propietario_fichas = Aprendiz.objects.filter(propietario=request.user).values_list('ficha_id', flat=True).distinct()
+        mis_fichas_ids |= set(propietario_fichas)
+        competencias = Competencia.objects.filter(
+            ficha_id__in=mis_fichas_ids
+        ).select_related('fase', 'ficha', 'trimestre').order_by('codigo')
+    elif request.user.rol == 'jurado':
+        ficha_ids = Invitacion.objects.filter(
+            Q(instructor_invitado=request.user) | Q(instructores_jurados=request.user),
+            estado=Invitacion.ESTADO_ACEPTADA
+        ).values_list('ficha_id', flat=True).distinct()
+        competencias = Competencia.objects.filter(
+            ficha_id__in=ficha_ids
+        ).select_related('fase', 'ficha', 'trimestre').order_by('codigo')
+    else:
+        competencias = Competencia.objects.none()
+    
     search = request.GET.get('search', '')
     if search:
         competencias = competencias.filter(
@@ -106,6 +132,30 @@ def detalle_competencia(request, pk):
         Competencia.objects.select_related('fase', 'gaes', 'ficha', 'trimestre'),
         pk=pk,
     )
+    if request.user.rol == 'administrador' or request.user.is_superuser:
+        pass
+    elif request.user.rol == 'instructor':
+        if comp.ficha and comp.ficha.instructor != request.user:
+            has_access = Invitacion.objects.filter(
+                Q(instructor_invitado=request.user) | Q(instructores_jurados=request.user),
+                ficha=comp.ficha,
+                estado=Invitacion.ESTADO_ACEPTADA
+            ).exists()
+            if not has_access:
+                return HttpResponseForbidden('No tienes acceso a esta competencia')
+    elif request.user.rol == 'jurado':
+        if comp.ficha:
+            has_access = Invitacion.objects.filter(
+                Q(instructor_invitado=request.user) | Q(instructores_jurados=request.user),
+                ficha=comp.ficha,
+                estado=Invitacion.ESTADO_ACEPTADA
+            ).exists()
+            if not has_access:
+                return HttpResponseForbidden('No tienes acceso a esta competencia')
+        else:
+            return HttpResponseForbidden('No tienes acceso a esta competencia')
+    else:
+        return HttpResponseForbidden('No tienes acceso a esta competencia')
     return render(request, 'competencias/detalle_competencia.html', {'comp': comp})
 
 
@@ -133,11 +183,22 @@ def crear_competencia(request):
 
     ctx = {
         'fases':    Fase.objects.order_by('numero'),
-        'fichas':   Ficha.objects.order_by('numero'),
         'trimestres': Trimestre.objects.order_by('numero'),
         'fase_preset':  fase_preset,
         'ficha_preset': ficha_preset,
     }
+    if request.user.rol == 'administrador' or request.user.is_superuser:
+        ctx['fichas'] = Ficha.objects.order_by('numero')
+    elif request.user.rol == 'instructor':
+        ctx['fichas'] = Ficha.objects.filter(instructor=request.user).order_by('numero')
+    elif request.user.rol == 'jurado':
+        ficha_ids = Invitacion.objects.filter(
+            Q(instructor_invitado=request.user) | Q(instructores_jurados=request.user),
+            estado=Invitacion.ESTADO_ACEPTADA
+        ).values_list('ficha_id', flat=True).distinct()
+        ctx['fichas'] = Ficha.objects.filter(id__in=ficha_ids).order_by('numero')
+    else:
+        ctx['fichas'] = Ficha.objects.none()
     if fase_preset:
         ctx['competencias_existentes'] = Competencia.objects.filter(
             fase_id=fase_preset, ficha_id=ficha_preset or None
@@ -164,9 +225,20 @@ def editar_competencia(request, pk):
     ctx = {
         'comp': comp,
         'fases': Fase.objects.order_by('numero'),
-        'fichas': Ficha.objects.order_by('numero'),
         'trimestres': Trimestre.objects.order_by('numero'),
     }
+    if request.user.rol == 'administrador' or request.user.is_superuser:
+        ctx['fichas'] = Ficha.objects.order_by('numero')
+    elif request.user.rol == 'instructor':
+        ctx['fichas'] = Ficha.objects.filter(instructor=request.user).order_by('numero')
+    elif request.user.rol == 'jurado':
+        ficha_ids = Invitacion.objects.filter(
+            Q(instructor_invitado=request.user) | Q(instructores_jurados=request.user),
+            estado=Invitacion.ESTADO_ACEPTADA
+        ).values_list('ficha_id', flat=True).distinct()
+        ctx['fichas'] = Ficha.objects.filter(id__in=ficha_ids).order_by('numero')
+    else:
+        ctx['fichas'] = Ficha.objects.none()
     return render(request, 'competencias/editar_competencia.html', ctx)
 
 
@@ -203,7 +275,34 @@ CHECKLIST_PERMISOS = ['administrador', 'instructor', 'jurado']
 def lista_checklists(request):
     if request.user.rol not in CHECKLIST_PERMISOS:
         return HttpResponseForbidden()
-    checklists = Checklist.objects.filter(activo=True).order_by('-created_at')
+    
+    if request.user.rol == 'jurado':
+        ficha_ids = Invitacion.objects.filter(
+            Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+            estado=Invitacion.ESTADO_ACEPTADA
+        ).values_list('ficha_id', flat=True).distinct()
+        checklists = Checklist.objects.filter(
+            activo=True,
+            items__competencia__ficha_id__in=ficha_ids
+        ).distinct().order_by('-created_at')
+    elif request.user.rol == 'instructor':
+        mis_fichas_ids = set(Ficha.objects.filter(instructor=request.user).values_list('id', flat=True))
+        inv_fichas_ids = Invitacion.objects.filter(
+            Q(instructor_invitado=request.user) | Q(instructores_jurados=request.user),
+            estado=Invitacion.ESTADO_ACEPTADA
+        ).values_list('ficha_id', flat=True).distinct()
+        mis_fichas_ids |= set(inv_fichas_ids)
+        propietario_fichas = Aprendiz.objects.filter(propietario=request.user).values_list('ficha_id', flat=True).distinct()
+        mis_fichas_ids |= set(propietario_fichas)
+        checklists = Checklist.objects.filter(
+            activo=True
+        ).filter(
+            models.Q(propietario=request.user) |
+            models.Q(items__competencia__ficha_id__in=mis_fichas_ids)
+        ).distinct().order_by('-created_at')
+    else:
+        checklists = Checklist.objects.filter(activo=True).order_by('-created_at')
+    
     search = request.GET.get('search', '')
     if search:
         checklists = checklists.filter(
@@ -222,6 +321,7 @@ def crear_checklist(request):
         Checklist.objects.create(
             titulo=request.POST['titulo'],
             descripcion=request.POST.get('descripcion', ''),
+            propietario=request.user,
         )
         messages.success(request, 'Lista de chequeo creada')
         return redirect('lista_checklists')
@@ -233,6 +333,8 @@ def ver_checklist(request, pk):
     if request.user.rol not in CHECKLIST_PERMISOS:
         return HttpResponseForbidden()
     checklist = get_object_or_404(Checklist, pk=pk)
+    if request.user.rol != 'administrador' and checklist.propietario != request.user:
+        return HttpResponseForbidden('No tienes acceso a este checklist')
     items = checklist.items.order_by('orden')
 
     if request.method == 'POST':
@@ -273,6 +375,8 @@ def editar_checklist(request, pk):
     checklist = get_object_or_404(Checklist, pk=pk)
     if request.user.rol not in ['administrador', 'instructor']:
         return HttpResponseForbidden()
+    if request.user.rol != 'administrador' and checklist.propietario != request.user:
+        return HttpResponseForbidden('No tienes acceso a este checklist')
     if request.method == 'POST':
         checklist.titulo = request.POST.get('titulo', checklist.titulo)
         checklist.descripcion = request.POST.get('descripcion', checklist.descripcion)
@@ -288,7 +392,10 @@ def eliminar_checklist(request, pk):
         return HttpResponseForbidden()
     if request.method != 'POST':
         return redirect('lista_checklists')
-    get_object_or_404(Checklist, pk=pk).delete()
+    checklist = get_object_or_404(Checklist, pk=pk)
+    if request.user.rol != 'administrador' and checklist.propietario != request.user:
+        return HttpResponseForbidden('No tienes permiso para eliminar este checklist')
+    checklist.delete()
     messages.success(request, 'Checklist eliminada')
     return redirect('lista_checklists')
 

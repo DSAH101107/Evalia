@@ -51,7 +51,7 @@ def dashboard(request):
 
     # Invitaciones recibidas por este usuario
     invitaciones_recibidas = Invitacion.objects.filter(
-        instructor_invitado=request.user,
+        models.Q(instructor_invitado=request.user) | models.Q(instructores_jurados=request.user)
     )
     invitaciones_pendientes = invitaciones_recibidas.filter(
         estado=Invitacion.ESTADO_PENDIENTE,
@@ -109,40 +109,46 @@ def dashboard(request):
     
     # Check if any aprendices exist in assigned fichas
     if ficha_ids:
-        aprendices_count = Aprendiz.objects.filter(ficha_id__in=ficha_ids).count()
-        if aprendices_count > 0:
-            gaes_disponibles = GAES.objects.filter(
-                aprendices__ficha_id__in=ficha_ids
-            ).annotate(
-                cant_aprendices=Count('aprendices', distinct=True)
-            ).filter(cant_aprendices__gt=0).distinct().order_by('nombre')
-        else:
-            # If assigned fichas have no aprendices, show all GAES with aprendices
-            gaes_disponibles = GAES.objects.annotate(
-                cant_aprendices=Count('aprendices', distinct=True)
-            ).filter(cant_aprendices__gt=0).order_by('nombre')
+        gaes_a_evaluar = GAES.objects.filter(
+            models.Q(fichas__id__in=ficha_ids) |
+            models.Q(aprendices__ficha__id__in=ficha_ids) |
+            models.Q(aprendices__gaes__ficha__id__in=ficha_ids)
+        ).annotate(
+            aprendices_count=Count('aprendices', distinct=True)
+        ).filter(aprendices_count__gt=0).distinct().order_by('nombre')
     else:
-        # Si el jurado no tiene fichas asignadas, mostrar todos los GAES con aprendices
-        gaes_disponibles = GAES.objects.annotate(
-            cant_aprendices=Count('aprendices', distinct=True)
-        ).filter(cant_aprendices__gt=0).order_by('nombre')
+        # Si el jurado no tiene fichas asignadas, no mostrar GAES
+        gaes_a_evaluar = GAES.objects.none()
 
     # ── Datos para gráficas ────────────────────────────────────────────────
-    gaes_qs = (GAES.objects
-               .annotate(cant=Count('aprendices', distinct=True))
-               .filter(cant__gt=0).order_by('nombre'))
+    if request.user.rol == 'jurado' and ficha_ids:
+        gaes_qs = (GAES.objects
+                   .filter(fichas__id__in=ficha_ids)
+                   .annotate(cant=Count('aprendices', distinct=True))
+                   .filter(cant__gt=0).order_by('nombre'))
+        ficha_qs = (Ficha.objects
+                    .filter(id__in=ficha_ids)
+                    .annotate(cant=Count('aprendices', distinct=True))
+                    .filter(cant__gt=0)
+                    .order_by('numero'))
+        _mis_fases_ids = (Aprendiz.objects
+                          .filter(models.Q(ficha__id__in=ficha_ids) | models.Q(gaes__ficha__id__in=ficha_ids))
+                          .filter(fase__isnull=False)
+                          .values_list('fase_id', flat=True)
+                          .distinct())
+        fase_qs = (Fase.objects
+                   .filter(id__in=_mis_fases_ids)
+                   .annotate(cant=Count('aprendices', distinct=True))
+                   .filter(cant__gt=0)
+                   .order_by('numero'))
+    else:
+        gaes_qs = GAES.objects.none()
+        ficha_qs = Ficha.objects.none()
+        fase_qs = Fase.objects.none()
     gaes_labels = [g.nombre for g in gaes_qs]
     gaes_values = [g.cant for g in gaes_qs]
-
-    ficha_qs = (Ficha.objects
-                .annotate(cant=Count('aprendices', distinct=True))
-                .filter(cant__gt=0).order_by('numero'))
     ficha_labels = [f.numero for f in ficha_qs]
     ficha_values = [f.cant for f in ficha_qs]
-
-    fase_qs = (Fase.objects
-               .annotate(cant=Count('aprendices', distinct=True))
-               .order_by('numero'))
     fase_labels = [f'Fase {f.numero}' for f in fase_qs]
     fase_values = [f.cant for f in fase_qs]
 
@@ -162,7 +168,7 @@ def dashboard(request):
         'ficha_values': ficha_values,
         'fase_labels': fase_labels,
         'fase_values': fase_values,
-        'gaes_disponibles': gaes_disponibles,
+        'gaes_a_evaluar': gaes_a_evaluar,
     })
 
 
@@ -202,17 +208,39 @@ def mi_ficha(request):
         'gaes', 'trimestre', 'instructor'
     ).prefetch_related('aprendices')
 
-    # Si no hay evaluaciones, mostrar todas las fichas
-    if not fichas.exists():
-        fichas = Ficha.objects.all().select_related(
-            'gaes', 'trimestre', 'instructor'
-        )
-
     return render(request, 'fichas/lista_fichas.html', {
         'fichas': fichas,
         'filtro': '',
     })
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Lista de GAES (Jurado)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@login_required
+def jurado_gaes(request):
+    """Muestra los GAES con aprendices para el jurado evaluar."""
+    if request.user.rol not in ['administrador', 'jurado', 'instructor']:
+        return HttpResponseForbidden('No tienes acceso')
+    
+    # Fichas del jurado (invitaciones aceptadas)
+    ficha_ids = Invitacion.objects.filter(
+        models.Q(instructor_invitado=request.user) | models.Q(instructores_jurados=request.user),
+        estado=Invitacion.ESTADO_ACEPTADA
+    ).values_list('ficha_id', flat=True).distinct()
+    
+    # GAES con aprendices en esas fichas o con aprendices que tienen GAES asignado
+    gaes = GAES.objects.filter(
+        models.Q(fichas__id__in=ficha_ids) |
+        models.Q(aprendices__gaes__ficha__id__in=ficha_ids)
+    ).annotate(
+        aprendices_count=Count('aprendices', distinct=True)
+    ).filter(aprendices_count__gt=0).distinct().order_by('nombre')
+    
+    return render(request, 'jurados/lista_gaes.html', {
+        'gaes_list': gaes,
+    })
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Lista de Chequeo (Jurado)
@@ -252,11 +280,15 @@ def mi_checklist(request, checklist_id=None):
         checklists = checklists.filter(
             items__competencia__ficha_id__in=mis_fichas_ids
         ).distinct()
+    else:
+        checklists = Checklist.objects.none()
 
     checklist = None
     items = []
     if checklist_id:
         checklist = get_object_or_404(Checklist, id=checklist_id, activo=True)
+        if not checklists.filter(id=checklist.id).exists():
+            return HttpResponseForbidden('No tienes acceso a este checklist')
         items = ChecklistItem.objects.filter(
             checklist=checklist
         ).select_related('competencia').order_by('orden')
@@ -334,15 +366,9 @@ def evaluar_gaes(request, gaes_id):
     
     gaes = get_object_or_404(GAES, id=gaes_id)
     
-    # Get fichas assigned to this jurado
-    ficha_ids = Ficha.objects.filter(
-        instructor=request.user
-    ).values_list('id', flat=True).distinct()
-    
-    propietario_fichas = Aprendiz.objects.filter(
-        propietario=request.user
-    ).values_list('ficha_id', flat=True).distinct()
-    ficha_ids = set(ficha_ids) | set(propietario_fichas)
+    # Get fichas assigned to this jurado (ya calculado arriba)
+    # ficha_ids viene del contexto del dashboard
+    ficha_ids = set()
     
     inv_fichas = Invitacion.objects.filter(
         models.Q(instructor_invitado=request.user) | models.Q(instructores_jurados=request.user),
@@ -350,26 +376,49 @@ def evaluar_gaes(request, gaes_id):
     ).values_list('ficha_id', flat=True).distinct()
     ficha_ids |= set(inv_fichas)
     
-    eval_fichas = Evaluacion.objects.filter(
-        juror=request.user
-    ).values_list('aprendiz__ficha_id', flat=True).distinct()
-    ficha_ids |= set(eval_fichas)
-    
-    aprendices = Aprendiz.objects.filter(gaes=gaes, ficha__in=ficha_ids).select_related('ficha', 'gaes', 'fase')
-    
-    if not aprendices.exists():
-        aprendices = Aprendiz.objects.filter(gaes=gaes).select_related('ficha', 'gaes', 'fase')
+    # Get aprendices del GAES (sin importar si tienen ficha o no)
+    aprendices = Aprendiz.objects.filter(gaes=gaes).select_related('ficha', 'gaes', 'fase')
     
     if not aprendices.exists():
         messages.warning(request, 'No hay aprendices en este GAES.')
         return redirect('dashboard_jurado')
     
-    checklists = Checklist.objects.filter(activo=True)
+    # Get checklists: primero de la invitación, luego por competencias de la ficha
+    inv_checklists = Invitacion.objects.filter(
+        models.Q(instructor_invitado=request.user) | models.Q(instructores_jurados=request.user),
+        estado=Invitacion.ESTADO_ACEPTADA,
+        checklist__isnull=False
+    ).values_list('checklist_id', flat=True).distinct()
+    
+    if request.user.rol == 'administrador':
+        checklists = Checklist.objects.filter(activo=True)
+    elif request.user.rol == 'instructor':
+        checklists = Checklist.objects.filter(
+            activo=True,
+            items__competencia__ficha_id__in=ficha_ids
+        ).distinct() if ficha_ids else Checklist.objects.none()
+    elif request.user.rol == 'jurado':
+        checklists = Checklist.objects.filter(
+            models.Q(id__in=inv_checklists),
+            activo=True
+        ).distinct()
+    else:
+        checklists = Checklist.objects.none()
     
     if request.method == 'POST':
         checklist_id = request.POST.get('checklist_id')
         if checklist_id:
             checklist = get_object_or_404(Checklist, id=checklist_id, activo=True)
+            # Permitir acceso si: es administrador, o el propietario es el usuario, o viene de una invitación aceptada
+            has_access = request.user.rol == 'administrador' or checklist.propietario == request.user
+            if not has_access and request.user.rol == 'jurado':
+                has_access = Invitacion.objects.filter(
+                    models.Q(instructores_jurados=request.user) | models.Q(instructor_invitado=request.user),
+                    estado=Invitacion.ESTADO_ACEPTADA,
+                    checklist_id=checklist_id
+                ).exists()
+            if not has_access:
+                return HttpResponseForbidden('No tienes acceso a este checklist')
             # Crear evaluación para cada aprendiz del GAES
             for aprendiz in aprendices:
                 Evaluacion.objects.get_or_create(
@@ -392,20 +441,38 @@ def evaluar_gaes(request, gaes_id):
 
 @login_required
 def jurado_evaluaciones_gaes(request, gaes_id):
-    """Muestra todas las evaluaciones del GAES para que el jurado las complete."""
+    """Muestra los resultados del GAES para el jurado."""
     if request.user.rol not in ['administrador', 'jurado', 'instructor']:
         return HttpResponseForbidden('No tienes acceso')
     
     gaes = get_object_or_404(GAES, id=gaes_id)
     
-    evaluaciones = Evaluacion.objects.filter(
-        aprendiz__gaes=gaes,
-        juror=request.user
-    ).select_related('aprendiz', 'checklist').order_by('aprendiz__nombres')
+    # Obtener checklist de la invitación
+    checklist_id = None
+    inv = Invitacion.objects.filter(
+        models.Q(instructor_invitado=request.user) | models.Q(instructores_jurados=request.user),
+        estado=Invitacion.ESTADO_ACEPTADA,
+        ficha__gaes=gaes
+    ).values_list('checklist_id', flat=True).first()
+    
+    if inv:
+        checklist_id = inv
+    
+    # Obtener aprendices del GAES con sus resultados
+    aprendices = Aprendiz.objects.filter(gaes=gaes).select_related('fase').order_by('nombres', 'apellidos')
+    
+    aprendices_con_resultado = []
+    for aprendiz in aprendices:
+        resultado = aprendiz.resultados.first() if hasattr(aprendiz, 'resultados') else None
+        aprendices_con_resultado.append({
+            'aprendiz': aprendiz,
+            'resultado': resultado,
+        })
     
     return render(request, 'jurados/evaluaciones_gaes.html', {
         'gaes': gaes,
-        'evaluaciones': evaluaciones,
+        'aprendices_con_resultado': aprendices_con_resultado,
+        'checklist_id': checklist_id,
     })
 
 

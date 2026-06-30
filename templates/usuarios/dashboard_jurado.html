@@ -63,16 +63,16 @@
 {% endif %}
 
 {# ====================== GAES A EVALUAR ====================== #}
-{% if gaes_disponibles %}
+{% if gaes_a_evaluar %}
 <div class="card" style="margin-top:1.5rem;">
     <h3 style="margin-top:0;">GAES a evaluar</h3>
     <div class="metrics-grid">
-        {% for gaes in gaes_disponibles %}
+        {% for gaes in gaes_a_evaluar %}
         <div class="metric-card gaes-item">
             <a href="{% url 'evaluar_gaes' gaes.id %}" style="text-decoration:none;color:inherit;">
                 <div style="font-size:1.5rem;">👥</div>
                 <div class="metric-label">{{ gaes.nombre }}</div>
-                <small>{{ gaes.cant_aprendices }} aprendices</small>
+                <small>{{ gaes.aprendices_count }} aprendices</small>
             </a>
         </div>
         {% endfor %}

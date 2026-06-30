@@ -1,9 +1,11 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
+from django.db.models import Q
 import logging
 
 from apps.evaluacion.models import Evaluacion, Resultado, Aprendiz, Invitacion
+from apps.fichas.models import Ficha
 from .models import Usuario
 
 logger = logging.getLogger(__name__)
@@ -31,20 +33,28 @@ def instructor_tablas(request):
         aprendices = Aprendiz.objects.filter(propietario=request.user)
     total_aprendices = aprendices.count()
 
-    # --- 2) Determinar jurados relacionados ---
-    # En este sistema, el instructor ve datos que dependen de evaluaciones
-    # realizadas por usuarios con rol='jurado'.
-    jurados_relacionados = Usuario.objects.filter(rol='jurado').values_list('id', flat=True)
+    # --- 2) Fichas visibles para este instructor ---
+    mis_fichas_ids = set(Ficha.objects.filter(instructor=request.user).values_list('id', flat=True))
+    inv_fichas_ids = Invitacion.objects.filter(
+        Q(instructor_invitado=request.user) | Q(instructores_jurados=request.user),
+        estado=Invitacion.ESTADO_ACEPTADA
+    ).values_list('ficha_id', flat=True).distinct()
+    mis_fichas_ids |= set(inv_fichas_ids)
+    propietario_fichas = Aprendiz.objects.filter(
+        propietario=request.user
+    ).values_list('ficha_id', flat=True).distinct()
+    mis_fichas_ids |= set(propietario_fichas)
 
     # --- 3) Evaluaciones y resultados (para la sección de tablas) ---
+    # Solo mostrar datos de las fichas del instructor
     evaluaciones = (
-        Evaluacion.objects.filter(juror__in=jurados_relacionados)
+        Evaluacion.objects.filter(aprendiz__ficha__id__in=mis_fichas_ids)
         .select_related('aprendiz', 'checklist', 'juror')
         .order_by('-fecha')
     )
 
     resultados = (
-        Resultado.objects.filter(aprendiz__evaluaciones__juror__in=jurados_relacionados)
+        Resultado.objects.filter(aprendiz__ficha__id__in=mis_fichas_ids)
         .select_related('aprendiz')
         .distinct()
         .order_by('-fecha_cierre')

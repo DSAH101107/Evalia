@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Confirmar eliminación de usuario{% endblock %}
+
+{% block content %}
+<div class="page-layout">
+    <div class="page-header">
+        <h1>⚠️ Confirmar eliminación</h1>
+    </div>
+
+    <div class="card" style="background: #fff8f0; border: 2px solid #ffedd5;">
+        <h3 style="color: #c2410c;">¿Está seguro de eliminar a este usuario?</h3>
+        
+        <div style="background: #fef2f2; padding: 1rem; border-radius: 8px; margin: 1rem 0; border-left: 4px solid #dc2626;">
+            <p style="margin: 0; font-weight: 600;">{{ usuario.username }} ({{ usuario.email }})</p>
+        </div>
+        
+        <p style="color: #7c2d12; font-weight: 600;">Este usuario no se puede eliminar porque tiene las siguientes dependencias:</p>
+        
+        <ul style="background: #fefce8; padding: 1rem 1.5rem; border-radius: 8px; margin: 1rem 0;">
+            {% for dep in dependencias %}
+            <li style="margin: 0.5rem 0; color: #92270a;">{{ dep.texto }}</li>
+            {% endfor %}
+        </ul>
+        
+        <div class="form-group" style="margin: 1.5rem 0; padding: 1rem; background: #f0f9ff; border-radius: 8px; border: 1px solid #bae6fd;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 600; color: #0c4a6e;">
+                <input type="checkbox" id="respaldar_datos" name="respaldar_datos" onchange="toggleRespaldoInfo()" style="width: 18px; height: 18px;">
+                📥 Generar respaldo de información antes de eliminar
+            </label>
+            <p id="respaldo-info" style="margin: 0.5rem 0 0 2rem; font-size: 0.85rem; color: #0c4a6e; display: none;">
+                Se descargará un archivo PDF con todos los datos vinculados a este usuario.
+            </p>
+        </div>
+        
+        <div class="form-actions" style="margin-top: 2rem;">
+            <button type="button" class="btn btn-outline" onclick="cancelarEliminacion()">❌ Rechazar</button>
+            <form method="post" action="{% url 'eliminar_usuario_confirmar' usuario.id %}" style="display: inline;" id="form-eliminar">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger" style="padding: 0.75rem 2rem;">✅ Confirmar eliminación</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function cancelarEliminacion() {
+    window.location.href = "{% url 'lista_usuarios_por_grupos' %}";
+}
+
+function toggleRespaldoInfo() {
+    const checkbox = document.getElementById('respaldar_datos');
+    const info = document.getElementById('respaldo-info');
+    if (checkbox.checked) {
+        info.style.display = 'block';
+        // Agregar campo oculto al formulario
+        const form = document.getElementById('form-eliminar');
+        let hiddenInput = document.getElementById('respaldar_hidden');
+        if (!hiddenInput) {
+            hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.id = 'respaldar_hidden';
+            hiddenInput.name = 'respaldar_datos';
+            hiddenInput.value = 'on';
+            form.appendChild(hiddenInput);
+        }
+    } else {
+        info.style.display = 'none';
+        const hiddenInput = document.getElementById('respaldar_hidden');
+        if (hiddenInput) hiddenInput.remove();
+    }
+}
+</script>
+{% endblock %}

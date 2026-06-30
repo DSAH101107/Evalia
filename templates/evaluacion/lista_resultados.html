@@ -82,10 +82,12 @@
                     <td>
                         <a href="{% url 'ver_resultado' resultado.id %}" class="btn btn-outline btn-sm">Ver</a>
                         <a href="{% url 'generar_reporte_pdf' resultado.id %}" class="btn btn-outline btn-sm" target="_blank">PDF</a>
+                        {% if user.rol != 'aprendiz' %}
                         <form action="{% url 'eliminar_resultado' resultado.id %}" method="post" style="display:inline;">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-outline btn-sm" style="color: #dc3545;" onclick="return confirm('¿Eliminar permanentemente el resultado de \"{{ resultado.aprendiz.nombres }} {{ resultado.aprendiz.apellidos }}\"? Esta acción no se puede deshacer.');">🗑️ Eliminar</button>
+                            <button type="submit" class="btn btn-outline btn-sm" style="color: #dc3545;" onclick="return confirm('¿Eliminar permanentemente el resultado de {{ resultado.aprendiz.nombres }} {{ resultado.aprendiz.apellidos }}? Esta acción no se puede deshacer.');">🗑️ Eliminar</button>
                         </form>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}

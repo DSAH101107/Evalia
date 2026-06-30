@@ -211,6 +211,7 @@ class Checklist(models.Model):
     titulo     = models.CharField(max_length=100)
     descripcion = models.TextField()
     activo     = models.BooleanField(default=True)
+    propietario = models.ForeignKey('usuarios.Usuario', null=True, blank=True, on_delete=models.SET_NULL, related_name='checklists')
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:

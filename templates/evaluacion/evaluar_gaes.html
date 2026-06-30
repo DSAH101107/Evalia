@@ -4,8 +4,8 @@
 
 {% block content %}
 <div style="margin-bottom: 1rem;">
-    <a href="{% url 'home' %}" class="btn btn-outline">🏠 Volver al inicio</a>
-    <a href="{% url 'detalle_gaes' gaes.id %}" class="btn btn-secondary">← Volver a GAES</a>
+    <a href="{% url 'jurado_gaes' %}" class="btn btn-outline">👥 Ver GAES</a>
+    <a href="{% url 'dashboard_jurado' %}" class="btn btn-outline">🏠 Volver al Dashboard</a>
 </div>
 <div class="card">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
@@ -16,11 +16,6 @@
                 {% if checklist %}Checklist: <strong>{{ checklist.titulo }}</strong>{% else %}Selecciona un checklist para evaluar a todos los aprendices del GAES con la misma calificación{% endif %}
             </p>
         </div>
-        {% if checklist %}
-        <button type="button" class="btn btn-outline no-print" onclick="descargarPDF({{ gaes.id }}, {{ checklist.id }})">
-            🖨️ Descargar PDF
-        </button>
-        {% endif %}
     </div>
 
     <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
@@ -77,7 +72,7 @@
          </div>
          {% endfor %}
 
-        <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+        <div class="form-actions" style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
             <a href="{% url 'evaluar_gaes' gaes.id %}" class="btn btn-secondary">Cancelar</a>
             <button type="submit" class="btn btn-primary" style="padding: 0.75rem 2rem; font-size: 1.1rem;">
                 💾 Guardar Evaluación del GAES ({{ aprendices|length }} aprendices)
@@ -92,26 +87,6 @@
 </div>
 
 <script>
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-
-function descargarPDF(gaesId, checklistId) {
-    const url = `/evaluacion/gaes/${gaesId}/pdf/${checklistId}/`;
-    window.location.href = url;
-}
-
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('form-evaluar-gaes');
     if (!form) return;

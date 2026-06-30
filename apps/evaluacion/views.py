@@ -53,13 +53,38 @@ def lista_checklists(request):
     if request.user.rol not in CHECKLIST_PERMISOS:
         return HttpResponseForbidden()
     
-    checklists = Checklist.objects.filter(activo=True).order_by('-id')
-    
+    if request.user.rol == 'jurado':
+        ficha_ids = Invitacion.objects.filter(
+            Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+            estado=Invitacion.ESTADO_ACEPTADA
+        ).values_list('ficha_id', flat=True).distinct()
+        checklists = Checklist.objects.filter(
+            activo=True,
+            invitaciones__ficha_id__in=ficha_ids
+        ).distinct().order_by('-id')
+    elif request.user.rol == 'instructor':
+        mis_fichas_ids = set(Ficha.objects.filter(instructor=request.user).values_list('id', flat=True))
+        inv_fichas_ids = Invitacion.objects.filter(
+            Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+            estado=Invitacion.ESTADO_ACEPTADA
+        ).values_list('ficha_id', flat=True).distinct()
+        mis_fichas_ids |= set(inv_fichas_ids)
+        propietario_fichas = Aprendiz.objects.filter(propietario=request.user).values_list('ficha_id', flat=True).distinct()
+        mis_fichas_ids |= set(propietario_fichas)
+        checklists = Checklist.objects.filter(
+            activo=True
+        ).filter(
+            Q(propietario=request.user) |
+            Q(items__competencia__ficha_id__in=mis_fichas_ids)
+        ).distinct().order_by('-id')
+    else:
+        checklists = Checklist.objects.filter(activo=True).order_by('-id')
+
     # Filtros multicriterio
     filtro_titulo = request.GET.get('filtro_titulo', '')
     filtro_activo = request.GET.get('filtro_activo', '')
     search = request.GET.get('search', '')
-    
+
     if search:
         checklists = checklists.filter(
             models.Q(titulo__icontains=search)
@@ -69,7 +94,7 @@ def lista_checklists(request):
         checklists = checklists.filter(titulo__icontains=filtro_titulo)
     if filtro_activo:
         checklists = checklists.filter(activo=filtro_activo == 'true')
-    
+
     return render(request, 'evaluacion/lista_checklists.html', {
         'checklists': checklists,
         'filtro_titulo': filtro_titulo,
@@ -88,6 +113,7 @@ def crear_checklist(request):
             titulo=titulo or 'Checklist sin título',
             descripcion=descripcion,
             activo=True,
+            propietario=request.user,
         )
         criterios = request.POST.getlist('criterio')
         puntajes = request.POST.getlist('puntaje_maximo')
@@ -123,6 +149,8 @@ def eliminar_checklist(request, checklist_id):
         return HttpResponseForbidden()
     if request.method == 'POST':
         checklist = get_object_or_404(Checklist, pk=checklist_id)
+        if request.user.rol != 'administrador' and checklist.propietario != request.user:
+            return HttpResponseForbidden('No tienes permiso para eliminar este checklist')
         checklist.delete()
         return JsonResponse({'success': True, 'message': 'Checklist eliminada.'})
     return HttpResponseForbidden()
@@ -132,6 +160,8 @@ def ver_editar_checklist(request, checklist_id):
     if request.user.rol not in CHECKLIST_PERMISOS:
         return HttpResponseForbidden()
     checklist = get_object_or_404(Checklist, pk=checklist_id)
+    if request.user.rol != 'administrador' and checklist.propietario != request.user:
+        return HttpResponseForbidden('No tienes acceso a este checklist')
     items = checklist.items.order_by('orden')
     can_edit = request.user.rol in ['administrador', 'instructor']
     if request.method == 'POST' and can_edit:
@@ -164,6 +194,8 @@ def imprimir_checklist(request, checklist_id):
     if request.user.rol not in CHECKLIST_PERMISOS:
         return HttpResponseForbidden()
     checklist = get_object_or_404(Checklist, pk=checklist_id)
+    if request.user.rol != 'administrador' and checklist.propietario != request.user:
+        return HttpResponseForbidden('No tienes acceso a este checklist')
     items = checklist.items.order_by('orden')
     return render(request, 'evaluacion/imprimir_checklist.html', {
         'checklist': checklist,
@@ -176,17 +208,56 @@ def iniciar_evaluacion(request, aprendiz_id):
     if request.user.rol not in ['administrador', 'jurado', 'instructor']:
         return HttpResponseForbidden('No tienes acceso')
     aprendiz = get_object_or_404(Aprendiz, id=aprendiz_id)
+    
+    if request.user.rol == 'jurado':
+        ficha_id = aprendiz.ficha_id or (aprendiz.gaes.ficha_id if aprendiz.gaes else None)
+        if ficha_id:
+            has_access = Invitacion.objects.filter(
+                Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+                ficha_id=ficha_id,
+                estado=Invitacion.ESTADO_ACEPTADA
+            ).exists()
+            if not has_access:
+                return HttpResponseForbidden('No tienes acceso a este aprendiz')
+    
     if aprendiz.fase:
         checklists = Checklist.objects.filter(
             activo=True,
             items__competencia__fase=aprendiz.fase
         ).distinct()
     else:
-        checklists = Checklist.objects.filter(activo=True)
+        if request.user.rol == 'administrador':
+            checklists = Checklist.objects.filter(activo=True)
+        elif request.user.rol == 'instructor':
+            mis_fichas_ids = set(Ficha.objects.filter(instructor=request.user).values_list('id', flat=True))
+            inv_fichas_ids = Invitacion.objects.filter(
+                Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+                estado=Invitacion.ESTADO_ACEPTADA
+            ).values_list('ficha_id', flat=True).distinct()
+            mis_fichas_ids |= set(inv_fichas_ids)
+            propietario_fichas = Aprendiz.objects.filter(propietario=request.user).values_list('ficha_id', flat=True).distinct()
+            mis_fichas_ids |= set(propietario_fichas)
+            checklists = Checklist.objects.filter(
+                activo=True,
+                items__competencia__ficha_id__in=mis_fichas_ids
+            ).distinct()
+        elif request.user.rol == 'jurado':
+            ficha_ids = Invitacion.objects.filter(
+                Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+                estado=Invitacion.ESTADO_ACEPTADA
+            ).values_list('ficha_id', flat=True).distinct()
+            checklists = Checklist.objects.filter(
+                activo=True,
+                items__competencia__ficha_id__in=ficha_ids
+            ).distinct()
+        else:
+            checklists = Checklist.objects.none()
     if request.method == 'POST':
         checklist_id = request.POST.get('checklist_id')
         if checklist_id:
             checklist = get_object_or_404(Checklist, id=checklist_id, activo=True)
+            if request.user.rol != 'administrador' and checklist.propietario != request.user:
+                return HttpResponseForbidden('No tienes acceso a este checklist')
             evaluacion = Evaluacion.objects.create(
                 aprendiz=aprendiz,
                 juror=request.user,
@@ -294,6 +365,37 @@ def ver_checklist_limpio(request, checklist_id):
     if request.user.rol not in CHECKLIST_PERMISOS:
         return HttpResponseForbidden()
     checklist = get_object_or_404(Checklist, pk=checklist_id)
+    
+    if request.user.rol == 'jurado':
+        ficha_ids = Invitacion.objects.filter(
+            Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+            estado=Invitacion.ESTADO_ACEPTADA
+        ).values_list('ficha_id', flat=True).distinct()
+        has_access = Checklist.objects.filter(
+            pk=checklist_id,
+            items__competencia__ficha_id__in=ficha_ids
+        ).exists()
+        if not has_access:
+            return HttpResponseForbidden()
+    elif request.user.rol == 'instructor':
+        mis_fichas_ids = set(Ficha.objects.filter(instructor=request.user).values_list('id', flat=True))
+        inv_fichas_ids = Invitacion.objects.filter(
+            Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+            estado=Invitacion.ESTADO_ACEPTADA
+        ).values_list('ficha_id', flat=True).distinct()
+        mis_fichas_ids |= set(inv_fichas_ids)
+        propietario_fichas = Aprendiz.objects.filter(propietario=request.user).values_list('ficha_id', flat=True).distinct()
+        mis_fichas_ids |= set(propietario_fichas)
+        has_access = Checklist.objects.filter(
+            pk=checklist_id
+        ).filter(
+            Q(items__competencia__ficha_id__in=mis_fichas_ids) |
+            Q(items__competencia__isnull=True) |
+            Q(items__isnull=True)
+        ).exists()
+        if not has_access:
+            return HttpResponseForbidden()
+    
     items = checklist.items.order_by('orden')
     return render(request, 'evaluacion/ver_checklist_limpio.html', {
         'checklist': checklist,
@@ -304,7 +406,12 @@ def ver_checklist_limpio(request, checklist_id):
 def enviar_invitacion(request):
     if request.user.rol not in ['administrador', 'instructor']:
         return HttpResponseForbidden()
-    fichas = Ficha.objects.all().order_by('numero')
+    if request.user.rol == 'administrador':
+        fichas = Ficha.objects.all().order_by('numero')
+        checklists = Checklist.objects.filter(activo=True).order_by('titulo')
+    else:
+        fichas = Ficha.objects.filter(instructor=request.user).order_by('numero')
+        checklists = Checklist.objects.filter(activo=True, propietario=request.user).order_by('titulo')
     instructores = Usuario.objects.filter(rol='instructor').exclude(id=request.user.id)
     if request.method == 'POST':
         ficha_id = request.POST.get('ficha')
@@ -313,8 +420,10 @@ def enviar_invitacion(request):
         hora = request.POST.get('hora_evaluacion')
         mensaje = request.POST.get('mensaje', '')
         checklist_id = request.POST.get('checklist_id')
-        ficha = get_object_or_404(Ficha, id=ficha_id)
+        ficha = get_object_or_404(Ficha, id=ficha_id) if ficha_id else None
         checklist = get_object_or_404(Checklist, id=checklist_id) if checklist_id else None
+        if checklist and request.user.rol != 'administrador' and checklist.propietario != request.user:
+            return HttpResponseForbidden('No tienes acceso a este checklist')
         invitacion = Invitacion.objects.create(
             instructor=request.user,
             ficha=ficha,
@@ -332,6 +441,7 @@ def enviar_invitacion(request):
     return render(request, 'evaluacion/enviar_invitacion.html', {
         'fichas': fichas,
         'instructores': instructores,
+        'checklists': checklists,
     })
 
 @login_required
@@ -350,8 +460,17 @@ def lista_aprendices(request):
     if request.user.rol not in CHECKLIST_PERMISOS + ['jefe']:
         return HttpResponseForbidden()
     
-    # Base query
-    if request.user.rol == 'administrador' or request.user.is_superuser:
+    # Base query - filter by invitation for jurado
+    if request.user.rol == 'jurado':
+        # Jurado: only aprendices from fichas where they were invited
+        ficha_ids = Invitacion.objects.filter(
+            Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+            estado=Invitacion.ESTADO_ACEPTADA
+        ).values_list('ficha_id', flat=True).distinct()
+        aprendices = Aprendiz.objects.filter(
+            Q(ficha_id__in=ficha_ids) | Q(gaes__ficha_id__in=ficha_ids)
+        ).select_related('ficha', 'gaes', 'fase').distinct()
+    elif request.user.rol == 'administrador' or request.user.is_superuser:
         aprendices = Aprendiz.objects.all().select_related('ficha', 'gaes', 'fase')
     elif request.user.rol == 'jefe':
         aprendices = Aprendiz.objects.all().select_related('ficha', 'gaes', 'fase')
@@ -399,9 +518,36 @@ def lista_aprendices(request):
     aprendices = aprendices.order_by('nombres')
     
     # Context for filters
-    fichas_list = Ficha.objects.all().order_by('numero')
-    gaes_list = GAES.objects.all().order_by('nombre')
-    fases_list = Fase.objects.all().order_by('numero')
+    if request.user.rol == 'administrador' or request.user.is_superuser:
+        fichas_list = Ficha.objects.all().order_by('numero')
+    elif request.user.rol == 'instructor':
+        fichas_list = Ficha.objects.filter(instructor=request.user).order_by('numero')
+    elif request.user.rol == 'jurado':
+        ficha_ids = Invitacion.objects.filter(
+            Q(instructor_invitado=request.user) | Q(instructores_jurados=request.user),
+            estado=Invitacion.ESTADO_ACEPTADA
+        ).values_list('ficha_id', flat=True).distinct()
+        fichas_list = Ficha.objects.filter(id__in=ficha_ids).order_by('numero')
+    else:
+        fichas_list = Ficha.objects.none()
+    
+    if request.user.rol == 'administrador' or request.user.is_superuser:
+        gaes_list = GAES.objects.all().order_by('nombre')
+        fases_list = Fase.objects.all().order_by('numero')
+    elif request.user.rol in ['instructor', 'jurado']:
+        mis_fichas_ids = set(Ficha.objects.filter(instructor=request.user).values_list('id', flat=True))
+        inv_fichas_ids = Invitacion.objects.filter(
+            Q(instructor_invitado=request.user) | Q(instructores_jurados=request.user),
+            estado=Invitacion.ESTADO_ACEPTADA
+        ).values_list('ficha_id', flat=True).distinct()
+        mis_fichas_ids |= set(inv_fichas_ids)
+        propietario_fichas = Aprendiz.objects.filter(propietario=request.user).values_list('ficha_id', flat=True).distinct()
+        mis_fichas_ids |= set(propietario_fichas)
+        gaes_list = GAES.objects.filter(fichas__id__in=mis_fichas_ids).distinct().order_by('nombre')
+        fases_list = Fase.objects.filter(competencias__ficha_id__in=mis_fichas_ids).distinct().order_by('numero')
+    else:
+        gaes_list = GAES.objects.none()
+        fases_list = Fase.objects.none()
     
     return render(request, 'evaluacion/lista_aprendices.html', {
         'aprendices': aprendices,
@@ -423,7 +569,12 @@ def lista_aprendices(request):
 def crear_aprendiz(request):
     if request.user.rol not in ['administrador', 'instructor', 'jefe']:
         return HttpResponseForbidden()
-    fichas = Ficha.objects.all().order_by('numero')
+    if request.user.rol == 'administrador':
+        fichas = Ficha.objects.all().order_by('numero')
+    elif request.user.rol == 'instructor':
+        fichas = Ficha.objects.filter(instructor=request.user).order_by('numero')
+    else:
+        fichas = Ficha.objects.none()
     if request.method == 'POST':
         from django.db import transaction as db_transaction
         with db_transaction.atomic():
@@ -475,7 +626,12 @@ def editar_aprendiz(request, aprendiz_id):
     aprendiz = get_object_or_404(Aprendiz, id=aprendiz_id)
     if request.user.rol not in ['administrador', 'instructor']:
         return HttpResponseForbidden()
-    fichas = Ficha.objects.all().order_by('numero')
+    if request.user.rol == 'administrador':
+        fichas = Ficha.objects.all().order_by('numero')
+    elif request.user.rol == 'instructor':
+        fichas = Ficha.objects.filter(instructor=request.user).order_by('numero')
+    else:
+        fichas = Ficha.objects.none()
     if request.method == 'POST':
         aprendiz.nombres = request.POST.get('nombres', aprendiz.nombres).strip()
         aprendiz.documento = request.POST.get('documento', aprendiz.documento).strip()
@@ -510,9 +666,7 @@ def importar_excel(request):
         return HttpResponseForbidden()
     if request.method == 'POST':
         from django.db import transaction as db_transaction
-        from django.core.files.storage import default_storage
-        from django.core.files.base import ContentFile
-        archivo = request.FILES.get('archivo')
+        archivo = request.FILES.get('archivo_excel')
         if not archivo:
             messages.error(request, 'Debe seleccionar un archivo.')
             return redirect('importar_excel')
@@ -565,7 +719,7 @@ def importar_csv_aprendices(request):
     if request.user.rol not in ['administrador', 'instructor']:
         return HttpResponseForbidden()
     if request.method == 'POST':
-        archivo = request.FILES.get('archivo')
+        archivo = request.FILES.get('archivo_csv')
         if not archivo:
             messages.error(request, 'Debe seleccionar un archivo.')
             return redirect('importar_csv_aprendices')
@@ -607,8 +761,24 @@ def lista_evaluaciones(request):
     if request.user.rol not in ['administrador', 'jurado', 'instructor']:
         return HttpResponseForbidden()
     
-    # Get fichas with their evaluation counts
-    fichas = Ficha.objects.all().order_by('numero')
+    if request.user.rol == 'jurado':
+        fichas = Ficha.objects.filter(
+            Q(invitaciones__instructores_jurados=request.user) |
+            Q(invitaciones__instructor_invitado=request.user),
+            invitaciones__estado=Invitacion.ESTADO_ACEPTADA
+        ).distinct().order_by('numero')
+    elif request.user.rol == 'instructor':
+        fichas_ids = set(Ficha.objects.filter(instructor=request.user).values_list('id', flat=True))
+        inv_fichas_ids = Invitacion.objects.filter(
+            Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+            estado=Invitacion.ESTADO_ACEPTADA
+        ).values_list('ficha_id', flat=True).distinct()
+        fichas_ids |= set(inv_fichas_ids)
+        propietario_fichas = Aprendiz.objects.filter(propietario=request.user).values_list('ficha_id', flat=True).distinct()
+        fichas_ids |= set(propietario_fichas)
+        fichas = Ficha.objects.filter(id__in=fichas_ids).order_by('numero')
+    else:
+        fichas = Ficha.objects.all().order_by('numero')
     
     # Filtros multicriterio
     filtro_numero = request.GET.get('filtro_numero', '')
@@ -650,6 +820,27 @@ def detalle_ficha_evaluacion(request, ficha_id):
     if request.user.rol not in ['administrador', 'jurado', 'instructor', 'aprendiz']:
         return HttpResponseForbidden()
     
+    if request.user.rol == 'jurado':
+        has_access = Invitacion.objects.filter(
+            Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+            ficha=ficha,
+            estado=Invitacion.ESTADO_ACEPTADA
+        ).exists()
+        if not has_access:
+            return HttpResponseForbidden("No tienes acceso a esta ficha")
+    elif request.user.rol == 'instructor':
+        has_access = Ficha.objects.filter(id=ficha_id, instructor=request.user).exists()
+        if not has_access:
+            has_access = Invitacion.objects.filter(
+                Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+                ficha_id=ficha_id,
+                estado=Invitacion.ESTADO_ACEPTADA
+            ).exists()
+        if not has_access:
+            has_access = Aprendiz.objects.filter(ficha_id=ficha_id, propietario=request.user).exists()
+        if not has_access:
+            return HttpResponseForbidden("No tienes acceso a esta ficha")
+    
     # Get all GAES in this ficha
     gaes_list = GAES.objects.filter(ficha=ficha).prefetch_related(
         'aprendices', 'aprendices__resultados'
@@ -687,6 +878,27 @@ def generar_reporte_ficha(request, ficha_id):
     ficha = get_object_or_404(Ficha, id=ficha_id)
     if request.user.rol not in ['administrador', 'jurado', 'instructor']:
         return HttpResponseForbidden()
+    
+    if request.user.rol == 'jurado':
+        has_access = Invitacion.objects.filter(
+            Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+            ficha=ficha,
+            estado=Invitacion.ESTADO_ACEPTADA
+        ).exists()
+        if not has_access:
+            return HttpResponseForbidden("No tienes acceso a esta ficha")
+    elif request.user.rol == 'instructor':
+        has_access = Ficha.objects.filter(id=ficha_id, instructor=request.user).exists()
+        if not has_access:
+            has_access = Invitacion.objects.filter(
+                Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+                ficha_id=ficha_id,
+                estado=Invitacion.ESTADO_ACEPTADA
+            ).exists()
+        if not has_access:
+            has_access = Aprendiz.objects.filter(ficha_id=ficha_id, propietario=request.user).exists()
+        if not has_access:
+            return HttpResponseForbidden("No tienes acceso a esta ficha")
     
     gaes_list = GAES.objects.filter(ficha=ficha).prefetch_related(
         'aprendices', 'aprendices__resultados'
@@ -785,18 +997,84 @@ def eliminar_evaluacion(request, evaluacion_id):
         if request.headers.get('x-requested-with') == 'XMLHttpRequest':
             return JsonResponse({'success': False, 'message': 'No tienes permiso'}, status=403)
         return HttpResponseForbidden()
-    evaluacion.delete()
+    
+    aprendiz = evaluacion.aprendiz
+    ficha = aprendiz.ficha
+    gaes = aprendiz.gaes
+    ficha_id = ficha.id if ficha else (gaes.ficha.id if gaes and gaes.ficha else None)
+    
+    if request.user.rol == 'jurado':
+        has_access = Invitacion.objects.filter(
+            Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+            ficha_id=ficha_id,
+            estado=Invitacion.ESTADO_ACEPTADA
+        ).exists() if ficha_id else False
+        if not has_access:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'message': 'No tienes acceso a esta evaluación'}, status=403)
+            return HttpResponseForbidden()
+    elif request.user.rol == 'instructor':
+        has_access = False
+        if ficha_id:
+            has_access = Ficha.objects.filter(id=ficha_id, instructor=request.user).exists()
+            if not has_access:
+                has_access = Invitacion.objects.filter(
+                    Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+                    ficha_id=ficha_id,
+                    estado=Invitacion.ESTADO_ACEPTADA
+                ).exists()
+            if not has_access:
+                has_access = Aprendiz.objects.filter(id=aprendiz.id, propietario=request.user).exists()
+        if not has_access:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'message': 'No tienes acceso a esta evaluación'}, status=403)
+            return HttpResponseForbidden()
+    
+    evaluacion.estado = Evaluacion.ESTADO_CANCELADA
+    evaluacion.save(update_fields=['estado'])
+    
+    resultado = Resultado.objects.filter(aprendiz=aprendiz).first()
+    if resultado:
+        resultado.calcular_resultado()
+    
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        return JsonResponse({'success': True, 'message': 'Evaluación eliminada.'})
-    messages.success(request, 'Evaluación eliminada.')
+        return JsonResponse({'success': True, 'message': 'Evaluación archivada.'})
+    messages.success(request, 'Evaluación archivada.')
     return redirect('lista_evaluaciones')
 
 @login_required
 def lista_resultados(request):
-    if request.user.rol not in ['administrador', 'jurado', 'instructor']:
+    if request.user.rol not in ['administrador', 'jurado', 'instructor', 'aprendiz']:
         return HttpResponseForbidden()
     
-    resultados = Resultado.objects.all().select_related('aprendiz').order_by('-fecha_cierre')
+    if request.user.rol == 'aprendiz':
+        try:
+            aprendiz = Aprendiz.objects.get(usuario=request.user)
+            resultados = Resultado.objects.filter(aprendiz=aprendiz).select_related('aprendiz').distinct().order_by('-fecha_cierre')
+        except Aprendiz.DoesNotExist:
+            resultados = Resultado.objects.none()
+    elif request.user.rol == 'jurado':
+        ficha_ids = Invitacion.objects.filter(
+            Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+            estado=Invitacion.ESTADO_ACEPTADA
+        ).values_list('ficha_id', flat=True).distinct()
+        resultados = Resultado.objects.filter(
+            Q(aprendiz__ficha_id__in=ficha_ids) | Q(aprendiz__gaes__ficha_id__in=ficha_ids)
+        ).select_related('aprendiz').distinct()
+    elif request.user.rol == 'instructor':
+        mis_fichas_ids = set(Ficha.objects.filter(instructor=request.user).values_list('id', flat=True))
+        inv_fichas_ids = Invitacion.objects.filter(
+            Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+            estado=Invitacion.ESTADO_ACEPTADA
+        ).values_list('ficha_id', flat=True).distinct()
+        mis_fichas_ids |= set(inv_fichas_ids)
+        propietario_fichas = Aprendiz.objects.filter(propietario=request.user).values_list('ficha_id', flat=True).distinct()
+        mis_fichas_ids |= set(propietario_fichas)
+        resultados = Resultado.objects.filter(
+            Q(aprendiz__ficha_id__in=mis_fichas_ids) | Q(aprendiz__gaes__ficha_id__in=mis_fichas_ids)
+        ).select_related('aprendiz').distinct()
+    else:
+        resultados = Resultado.objects.all().select_related('aprendiz').order_by('-fecha_cierre')
     
     # Filtros multicriterio
     filtro_aprendiz = request.GET.get('filtro_aprendiz', '')
@@ -839,6 +1117,43 @@ def eliminar_resultado(request, resultado_id):
         if request.headers.get('x-requested-with') == 'XMLHttpRequest':
             return JsonResponse({'success': False, 'message': 'No tienes permiso'}, status=403)
         return HttpResponseForbidden()
+    
+    aprendiz = resultado.aprendiz
+    ficha = aprendiz.ficha
+    gaes = aprendiz.gaes
+    ficha_id = ficha.id if ficha else (gaes.ficha.id if gaes and gaes.ficha else None)
+    
+    if request.user.rol == 'jurado':
+        has_access = Invitacion.objects.filter(
+            Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+            ficha_id=ficha_id,
+            estado=Invitacion.ESTADO_ACEPTADA
+        ).exists() if ficha_id else False
+        if not has_access:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'message': 'No tienes acceso a este resultado'}, status=403)
+            return HttpResponseForbidden()
+    elif request.user.rol == 'instructor':
+        has_access = False
+        if ficha_id:
+            has_access = Ficha.objects.filter(id=ficha_id, instructor=request.user).exists()
+            if not has_access:
+                has_access = Invitacion.objects.filter(
+                    Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+                    ficha_id=ficha_id,
+                    estado=Invitacion.ESTADO_ACEPTADA
+                ).exists()
+            if not has_access:
+                has_access = Aprendiz.objects.filter(id=aprendiz.id, propietario=request.user).exists()
+        if not has_access:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'message': 'No tienes acceso a este resultado'}, status=403)
+            return HttpResponseForbidden()
+    
+    aprendiz = resultado.aprendiz
+    evaluaciones_archivar = Evaluacion.objects.filter(aprendiz=aprendiz)
+    evaluaciones_archivar.update(estado=Evaluacion.ESTADO_CANCELADA)
+    
     resultado.delete()
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         return JsonResponse({'success': True, 'message': 'Resultado eliminado.'})
@@ -850,14 +1165,41 @@ def ver_resultado(request, resultado_id):
     resultado = get_object_or_404(Resultado, id=resultado_id)
     if request.user.rol not in ['administrador', 'jurado', 'instructor', 'aprendiz']:
         return HttpResponseForbidden()
+    
+    aprendiz = resultado.aprendiz
+    ficha = aprendiz.ficha
+    gaes = aprendiz.gaes
+    ficha_id = ficha.id if ficha else (gaes.ficha.id if gaes and gaes.ficha else None)
+    
+    if request.user.rol == 'jurado':
+        has_access = Invitacion.objects.filter(
+            Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+            ficha_id=ficha_id,
+            estado=Invitacion.ESTADO_ACEPTADA
+        ).exists() if ficha_id else False
+        if not has_access:
+            return HttpResponseForbidden('No tienes acceso a este resultado')
+    elif request.user.rol == 'instructor':
+        has_access = False
+        if ficha_id:
+            has_access = Ficha.objects.filter(id=ficha_id, instructor=request.user).exists()
+            if not has_access:
+                has_access = Invitacion.objects.filter(
+                    Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+                    ficha_id=ficha_id,
+                    estado=Invitacion.ESTADO_ACEPTADA
+                ).exists()
+            if not has_access:
+                has_access = Aprendiz.objects.filter(id=aprendiz.id, propietario=request.user).exists()
+        if not has_access:
+            return HttpResponseForbidden('No tienes acceso a este resultado')
+    
     aprendiz = resultado.aprendiz
     evaluaciones = Evaluacion.objects.filter(
-        aprendiz=aprendiz, 
-        estado=Evaluacion.ESTADO_COMPLETADA
-    ).select_related('checklist', 'juror').order_by('-fecha')
-    # Prefetch items with their related checklist items in correct order
+        aprendiz=aprendiz
+    ).select_related('checklist', 'juror').prefetch_related('items__item').order_by('-fecha').distinct()
     for e in evaluaciones:
-        e.ordered_items = list(e.items.select_related('item').order_by('item__orden'))
+        e.ordered_items = list(e.items.all().order_by('item__orden'))
     return render(request, 'evaluacion/ver_resultado.html', {
         'resultado': resultado,
         'evaluaciones': evaluaciones,
@@ -866,11 +1208,44 @@ def ver_resultado(request, resultado_id):
 
 @login_required
 def generar_reporte_pdf(request, resultado_id):
-    if request.user.rol not in ['administrador', 'jefe', 'instructor', 'jurado']:
+    if request.user.rol not in ['administrador', 'jefe', 'instructor', 'jurado', 'aprendiz']:
         return HttpResponseForbidden()
     
-    # Fetch with select_related to eagerly load related objects
-    resultado = get_object_or_404(Resultado.objects.select_related('aprendiz__ficha'), id=resultado_id)
+    resultado = get_object_or_404(Resultado.objects.select_related('aprendiz__ficha', 'aprendiz__gaes'), id=resultado_id)
+    aprendiz = resultado.aprendiz
+    
+    if request.user.rol == 'aprendiz':
+        if aprendiz.usuario != request.user:
+            return HttpResponseForbidden()
+        ficha = aprendiz.ficha
+        ficha_id = ficha.id if ficha else None
+    else:
+        ficha = aprendiz.ficha
+        gaes_ficha = aprendiz.gaes.ficha if aprendiz.gaes else None
+        ficha_id = ficha.id if ficha else (gaes_ficha.id if gaes_ficha else None)
+        
+        if request.user.rol == 'jurado':
+            has_access = Invitacion.objects.filter(
+                Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+                ficha_id=ficha_id,
+                estado=Invitacion.ESTADO_ACEPTADA
+            ).exists() if ficha_id else False
+            if not has_access:
+                return HttpResponseForbidden()
+        elif request.user.rol == 'instructor':
+            has_access = False
+            if ficha_id:
+                has_access = Ficha.objects.filter(id=ficha_id, instructor=request.user).exists()
+                if not has_access:
+                    has_access = Invitacion.objects.filter(
+                        Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+                        ficha_id=ficha_id,
+                        estado=Invitacion.ESTADO_ACEPTADA
+                    ).exists()
+                if not has_access:
+                    has_access = Aprendiz.objects.filter(id=aprendiz.id, propietario=request.user).exists()
+            if not has_access:
+                return HttpResponseForbidden()
 
     # Generate PDF for both GET and POST
     buf = BytesIO()
@@ -1030,6 +1405,8 @@ def api_chart_gaes(request):
 @login_required
 def api_checklist_items(request, checklist_id):
     checklist = get_object_or_404(Checklist, pk=checklist_id)
+    if request.user.rol != 'administrador' and checklist.propietario != request.user:
+        return JsonResponse({'error': 'No tienes acceso'}, status=403)
     items = list(checklist.items.order_by('orden').values('id', 'criterio', 'descripcion', 'orden'))
     return JsonResponse({'items': items})
 
@@ -1039,14 +1416,52 @@ def evaluar_gaes(request, gaes_id):
     if request.user.rol not in CHECKLIST_PERMISOS:
         return HttpResponseForbidden()
     gaes = get_object_or_404(GAES, pk=gaes_id)
+    ficha = gaes.ficha
+    ficha_id = ficha.id if ficha else None
+    
+    if request.user.rol == 'jurado':
+        has_access = False
+        if ficha_id:
+            has_access = Invitacion.objects.filter(
+                Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+                ficha_id=ficha_id,
+                estado=Invitacion.ESTADO_ACEPTADA
+            ).exists()
+        if not has_access:
+            return HttpResponseForbidden()
+    elif request.user.rol == 'instructor':
+        has_access = False
+        if ficha_id:
+            has_access = Ficha.objects.filter(id=ficha_id, instructor=request.user).exists()
+            if not has_access:
+                has_access = Invitacion.objects.filter(
+                    Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+                    ficha_id=ficha_id,
+                    estado=Invitacion.ESTADO_ACEPTADA
+                ).exists()
+            if not has_access:
+                has_access = Aprendiz.objects.filter(gaes=gaes, propietario=request.user).exists()
+        if not has_access:
+            return HttpResponseForbidden()
     checklist = None
     items = []
+    creadas = 0
     if request.method == 'POST':
         checklist_id = request.POST.get('checklist_id')
         if not checklist_id:
             messages.error(request, 'Selecciona un checklist')
             return redirect('evaluar_gaes', gaes_id=gaes_id)
         checklist = get_object_or_404(Checklist, pk=checklist_id, activo=True)
+        # Permitir acceso si: es administrador, o el propietario es el usuario, o viene de una invitación aceptada
+        has_access = request.user.rol == 'administrador' or checklist.propietario == request.user
+        if not has_access and request.user.rol == 'jurado':
+            has_access = Invitacion.objects.filter(
+                Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+                estado=Invitacion.ESTADO_ACEPTADA,
+                checklist_id=checklist_id
+            ).exists()
+        if not has_access:
+            return HttpResponseForbidden('No tienes acceso a este checklist')
         items = checklist.items.order_by('orden')
         puntajes = {}
         for item in items:
@@ -1087,13 +1502,61 @@ def evaluar_gaes(request, gaes_id):
             resultado.save()
             creadas += 1
         messages.success(request, f'Evaluación completada para {creadas} aprendices de {gaes.nombre}')
-        return redirect('lista_evaluaciones')
+        return redirect('jurado_evaluaciones_gaes', gaes_id=gaes_id)
     else:
         checklist_id = request.GET.get('checklist_id')
         if checklist_id:
             checklist = get_object_or_404(Checklist, pk=checklist_id, activo=True)
+            # Permitir acceso si: es administrador, o el propietario es el usuario, o viene de una invitación aceptada
+            has_access = request.user.rol == 'administrador' or checklist.propietario == request.user
+            if not has_access and request.user.rol == 'jurado':
+                has_access = Invitacion.objects.filter(
+                    Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+                    estado=Invitacion.ESTADO_ACEPTADA,
+                    checklist_id=checklist_id
+                ).exists()
+            if not has_access:
+                return HttpResponseForbidden('No tienes acceso a este checklist')
             items = checklist.items.order_by('orden')
-    checklists = Checklist.objects.filter(activo=True).order_by('-id')
+    
+    if request.user.rol == 'administrador':
+        checklists = Checklist.objects.filter(activo=True)
+    elif request.user.rol == 'instructor':
+        mis_fichas_ids = set(Ficha.objects.filter(instructor=request.user).values_list('id', flat=True))
+        inv_fichas_ids = Invitacion.objects.filter(
+            Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+            estado=Invitacion.ESTADO_ACEPTADA
+        ).values_list('ficha_id', flat=True).distinct()
+        mis_fichas_ids |= set(inv_fichas_ids)
+        propietario_fichas = Aprendiz.objects.filter(propietario=request.user).values_list('ficha_id', flat=True).distinct()
+        mis_fichas_ids |= set(propietario_fichas)
+        checklists = Checklist.objects.filter(
+            activo=True
+        ).filter(
+            Q(propietario=request.user) |
+            Q(items__competencia__ficha_id__in=mis_fichas_ids)
+        ).distinct()
+    elif request.user.rol == 'jurado':
+        ficha_ids = Invitacion.objects.filter(
+            Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+            estado=Invitacion.ESTADO_ACEPTADA
+        ).values_list('ficha_id', flat=True).distinct()
+        
+        # Also get checklists directly from invitations
+        inv_checklists = Invitacion.objects.filter(
+            Q(instructores_jurados=request.user) | Q(instructor_invitado=request.user),
+            estado=Invitacion.ESTADO_ACEPTADA,
+            checklist__isnull=False
+        ).values_list('checklist_id', flat=True).distinct()
+        
+        checklists = Checklist.objects.filter(
+            models.Q(id__in=inv_checklists) |
+            models.Q(items__competencia__ficha_id__in=ficha_ids),
+            activo=True
+        ).distinct()
+    else:
+        checklists = Checklist.objects.none()
+    
     aprendices = Aprendiz.objects.filter(gaes=gaes).select_related('usuario', 'fase', 'ficha').order_by('nombres', 'apellidos')
     return render(request, 'evaluacion/evaluar_gaes.html', {
         'gaes': gaes,
@@ -1109,7 +1572,11 @@ def generar_pdf_gaes_evaluacion(request, gaes_id, checklist_id):
         return HttpResponseForbidden()
     gaes = get_object_or_404(GAES, pk=gaes_id)
     checklist = get_object_or_404(Checklist, pk=checklist_id)
-    aprendices = Aprendiz.objects.filter(gaes=gaes).select_related('usuario', 'fase', 'ficha').order_by('nombres', 'apellidos')
+    aprendiz_id = request.GET.get('aprendiz_id')
+    if aprendiz_id:
+        aprendices = Aprendiz.objects.filter(id=aprendiz_id, gaes=gaes).select_related('usuario', 'fase', 'ficha').order_by('nombres', 'apellidos')
+    else:
+        aprendices = Aprendiz.objects.filter(gaes=gaes).select_related('usuario', 'fase', 'ficha').order_by('nombres', 'apellidos')
     items = checklist.items.order_by('orden')
 
     if not aprendices:

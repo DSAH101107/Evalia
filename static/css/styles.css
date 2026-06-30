@@ -1288,3 +1288,126 @@ ul.gen-menu a:hover {
     background-color: var(--verde-sena) !important;
     color: var(--blanco) !important;
 }
+
+/* =====================================================
+   MOBILE MENU
+   ===================================================== */
+.mobile-menu-toggle {
+    display: none;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--blanco);
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.2rem;
+}
+
+@media (max-width: 768px) {
+    .home-nav {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: linear-gradient(135deg, var(--verde-sena) 0%, var(--verde-profundo) 100%);
+        flex-direction: column;
+        padding: 1rem;
+        gap: 0.5rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .home-nav.show {
+        display: flex;
+    }
+    
+    .home-nav .nav-link {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .mobile-menu-toggle {
+        display: block;
+    }
+    
+    .header-brand {
+        flex: 1;
+    }
+    
+    .header-actions {
+        display: none;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+        padding: 1rem;
+        background: linear-gradient(135deg, var(--verde-sena) 0%, var(--verde-profundo) 100%);
+    }
+    
+    .header-actions.show-actions {
+        display: flex;
+    }
+    
+    .user-pill {
+        justify-content: center;
+        font-size: 0.9rem;
+    }
+    
+    /* Table responsive for mobile */
+    .table-responsive table {
+        font-size: 0.85rem;
+    }
+    
+    .table-responsive th,
+    .table-responsive td {
+        padding: 0.5rem 0.75rem;
+        white-space: nowrap;
+    }
+    
+    /* Evaluation form responsive */
+    .eval-form-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 1rem;
+    }
+    
+    .eval-form-header h1 {
+        font-size: 1.4rem !important;
+    }
+}
+
+/* Additional mobile fixes for very small screens */
+@media (max-width: 480px) {
+    .metric-card {
+        padding: 1rem !important;
+    }
+    
+    .metric-value {
+        font-size: 1.75rem !important;
+    }
+    
+    .login-card {
+        padding: 1.75rem 1.25rem !important;
+    }
+    
+    .page-layout {
+        padding: 1rem 0.75rem !important;
+    }
+    
+    .card {
+        padding: 1rem !important;
+    }
+    
+    .table-responsive th,
+    .table-responsive td {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.8rem;
+    }
+    
+    .actions {
+        justify-content: stretch;
+    }
+    
+    .actions .btn {
+        flex: 1 1 100%;
+    }
+}

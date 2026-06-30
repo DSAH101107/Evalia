@@ -88,6 +88,12 @@
                 </td>
                 <td>
                     <a href="{% url 'detalle_ficha_evaluacion' ficha.id %}" class="btn btn-primary btn-sm">Ver</a>
+                    {% if user.rol == 'administrador' %}
+                    <form action="{% url 'eliminar_ficha' ficha.id %}" method="post" style="display:inline;" onsubmit="return confirm('¿Eliminar la ficha {{ ficha.numero }}? Esta acción no se puede deshacer.');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline btn-sm" style="color: #dc3545; border-color: #dc3545;">🗑️ Eliminar</button>
+                    </form>
+                    {% endif %}
                 </td>
             </tr>
             {% empty %}

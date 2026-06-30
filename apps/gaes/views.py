@@ -4,10 +4,10 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import HttpResponseForbidden, JsonResponse
 from django.db import models
-from django.db.models import ProtectedError, Prefetch
+from django.db.models import ProtectedError, Prefetch, Q
 from django.views.decorators.http import require_POST
 from .models import GAES
-from apps.evaluacion.models import Aprendiz, Competencia
+from apps.evaluacion.models import Aprendiz, Competencia, Invitacion
 from apps.fichas.models import Ficha
 from apps.usuarios.models import Usuario, Rol
 
@@ -95,7 +95,18 @@ def lista_gaes(request):
     if filtro_ficha:
         gaes_list = gaes_list.filter(fichas__numero=filtro_ficha)
     
-    fichas_list = Ficha.objects.all().order_by('numero')
+    if request.user.rol == 'administrador' or request.user.is_superuser:
+        fichas_list = Ficha.objects.all().order_by('numero')
+    elif request.user.rol == 'instructor':
+        fichas_list = Ficha.objects.filter(instructor=request.user).order_by('numero')
+    elif request.user.rol == 'jurado':
+        ficha_ids = Invitacion.objects.filter(
+            Q(instructor_invitado=request.user) | Q(instructores_jurados=request.user),
+            estado=Invitacion.ESTADO_ACEPTADA
+        ).values_list('ficha_id', flat=True).distinct()
+        fichas_list = Ficha.objects.filter(id__in=ficha_ids).order_by('numero')
+    else:
+        fichas_list = Ficha.objects.none()
     
     return render(request, 'gaes/lista_gaes.html', {
         'gaes_list': gaes_list,
@@ -177,7 +188,12 @@ def editar_gaes(request, pk):
         gaes.save()
         messages.success(request, 'GAES actualizado')
         return redirect('detalle_gaes', pk=pk)
-    fichas = Ficha.objects.all().order_by('numero')
+    if request.user.rol == 'administrador' or request.user.is_superuser:
+        fichas = Ficha.objects.all().order_by('numero')
+    elif request.user.rol == 'instructor':
+        fichas = Ficha.objects.filter(instructor=request.user).order_by('numero')
+    else:
+        fichas = Ficha.objects.none()
     return render(request, 'gaes/editar_gaes.html', {'gaes': gaes, 'fichas': fichas})
 
 

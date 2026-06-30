@@ -1,12 +1,12 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden, JsonResponse
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.views.decorators.http import require_http_methods
 from django.contrib import messages
 import json
 from .models import Ficha
-from apps.evaluacion.models import Trimestre, Aprendiz, GAES
+from apps.evaluacion.models import Trimestre, Aprendiz, GAES, Invitacion
 from apps.usuarios.models import Usuario
 
 @login_required
@@ -15,7 +15,18 @@ def lista_fichas(request):
     from django.db.models import Q
     from apps.evaluacion.models import GAES
     
-    fichas = Ficha.objects.all().order_by('numero')
+    if request.user.rol == 'administrador' or request.user.is_superuser:
+        fichas = Ficha.objects.all().order_by('numero')
+    elif request.user.rol == 'instructor':
+        fichas = Ficha.objects.filter(instructor=request.user).order_by('numero')
+    elif request.user.rol == 'jurado':
+        ficha_ids = Invitacion.objects.filter(
+            Q(instructor_invitado=request.user) | Q(instructores_jurados=request.user),
+            estado=Invitacion.ESTADO_ACEPTADA
+        ).values_list('ficha_id', flat=True).distinct()
+        fichas = Ficha.objects.filter(id__in=ficha_ids).order_by('numero')
+    else:
+        fichas = Ficha.objects.none()
     
     # Filtros multicriterio
     filtro_numero = request.GET.get('filtro_numero', '')
@@ -42,8 +53,22 @@ def lista_fichas(request):
         fichas = fichas.filter(instructor__username__icontains=filtro_instructor)
     
     # Opciones para dropdowns
-    gaes_list = GAES.objects.all().order_by('nombre')
-    instructores_list = Usuario.objects.filter(rol='instructor').order_by('username')
+    if request.user.rol == 'administrador' or request.user.is_superuser:
+        gaes_list = GAES.objects.all().order_by('nombre')
+        instructores_list = Usuario.objects.filter(rol='instructor').order_by('username')
+    elif request.user.rol == 'instructor':
+        gaes_list = GAES.objects.filter(fichas__instructor=request.user).distinct().order_by('nombre')
+        instructores_list = Usuario.objects.filter(rol='instructor', fichas__instructor=request.user).distinct().order_by('username')
+    elif request.user.rol == 'jurado':
+        ficha_ids = Invitacion.objects.filter(
+            Q(instructor_invitado=request.user) | Q(instructores_jurados=request.user),
+            estado=Invitacion.ESTADO_ACEPTADA
+        ).values_list('ficha_id', flat=True).distinct()
+        gaes_list = GAES.objects.filter(fichas__id__in=ficha_ids).distinct().order_by('nombre')
+        instructores_list = Usuario.objects.filter(rol='instructor', fichas__id__in=ficha_ids).distinct().order_by('username')
+    else:
+        gaes_list = GAES.objects.none()
+        instructores_list = Usuario.objects.none()
     
     return render(request, 'fichas/lista_fichas.html', {
         'fichas': fichas,
@@ -231,6 +256,27 @@ def crear_ficha(request):
 def detalle_ficha(request, pk):
     """Detalle de una ficha."""
     ficha = get_object_or_404(Ficha, pk=pk)
+    if request.user.rol == 'administrador' or request.user.is_superuser:
+        pass
+    elif request.user.rol == 'instructor':
+        if ficha.instructor != request.user:
+            has_access = Invitacion.objects.filter(
+                Q(instructor_invitado=request.user) | Q(instructores_jurados=request.user),
+                ficha=ficha,
+                estado=Invitacion.ESTADO_ACEPTADA
+            ).exists()
+            if not has_access:
+                return HttpResponseForbidden('No tienes acceso a esta ficha')
+    elif request.user.rol == 'jurado':
+        has_access = Invitacion.objects.filter(
+            Q(instructor_invitado=request.user) | Q(instructores_jurados=request.user),
+            ficha=ficha,
+            estado=Invitacion.ESTADO_ACEPTADA
+        ).exists()
+        if not has_access:
+            return HttpResponseForbidden('No tienes acceso a esta ficha')
+    else:
+        return HttpResponseForbidden('No tienes acceso a esta ficha')
     return render(request, 'fichas/detalle_ficha.html', {
         'ficha': ficha
     })

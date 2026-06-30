@@ -521,7 +521,7 @@ def importar_pdf_checklists(request):
         descripcion = request.POST.get('descripcion', '').strip() or 'Importado desde PDF'
 
         with transaction.atomic():
-            checklist = Checklist.objects.create(titulo=titulo, descripcion=descripcion, activo=True)
+            checklist = Checklist.objects.create(titulo=titulo, descripcion=descripcion, activo=True, propietario=request.user)
             seen = set()
             created_items = 0
             errores = []

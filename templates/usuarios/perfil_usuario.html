@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Mi Perfil{% endblock %}
+
+{% block content %}
+<div class="page-layout">
+    <div class="page-header">
+        <h1>👤 Mi Perfil</h1>
+    </div>
+
+    <div class="card" style="max-width: 700px; margin: 0 auto;">
+        <h3 style="margin-bottom: 1rem;">Datos de la Cuenta</h3>
+        <table class="data-table">
+            <tr><td><strong>Usuario</strong></td><td>{{ usuario.username }}</td></tr>
+            <tr><td><strong>Email</strong></td><td>{{ usuario.email }}</td></tr>
+            <tr><td><strong>Rol</strong></td><td>{{ usuario.get_rol_display }}</td></tr>
+            <tr><td><strong>Contraseña</strong></td><td>••••••••</td></tr>
+        </table>
+
+        <div style="margin-top: 2rem; border-top: 1px solid #eee; padding-top: 1.5rem;">
+            <button type="button" class="btn btn-primary" onclick="document.getElementById('form-cambiar-password').style.display = 'block'; this.style.display = 'none';">
+                🔑 Cambiar Contraseña
+            </button>
+        </div>
+
+        <div id="form-cambiar-password" style="display: none; margin-top: 1.5rem; background: #f8f9fa; padding: 1.5rem; border-radius: 8px;">
+            <h4 style="margin-bottom: 1rem;">Cambiar Contraseña</h4>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="cambiar_password">
+                <div style="margin-bottom: 1rem;">
+                    <label for="password_actual" style="display: block; font-weight: 600; margin-bottom: 0.3rem;">Contraseña Actual</label>
+                    <input type="password" id="password_actual" name="password_actual" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 6px;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label for="password_nuevo" style="display: block; font-weight: 600; margin-bottom: 0.3rem;">Nueva Contraseña</label>
+                    <input type="password" id="password_nuevo" name="password_nuevo" required minlength="4" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 6px;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label for="password_confirmar" style="display: block; font-weight: 600; margin-bottom: 0.3rem;">Confirmar Nueva Contraseña</label>
+                    <input type="password" id="password_confirmar" name="password_confirmar" required minlength="4" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 6px;">
+                </div>
+                <div class="form-actions" style="margin-top: 1rem;">
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                    <button type="button" class="btn btn-outline" onclick="document.getElementById('form-cambiar-password').style.display = 'none'; document.querySelector('[onclick=\"document.getElementById(\\\'form-cambiar-password\\\').style.display = \\\'block\\\'; this.style.display = \\\'none\\\';\"]').style.display = 'inline-block';">Cancelar</button>
+                </div>
+            </form>
+        </div>
+
+        {% if messages %}
+        <div style="margin-top: 1rem;">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    {% if aprendiz %}
+    <div class="card" style="max-width: 700px; margin: 1.5rem auto;">
+        <h3 style="margin-bottom: 1rem;">Datos del Aprendiz</h3>
+        <table class="data-table">
+            <tr><td><strong>Nombre</strong></td><td>{{ aprendiz.nombres }} {{ aprendiz.apellidos }}</td></tr>
+            <tr><td><strong>Documento</strong></td><td>{{ aprendiz.documento }}</td></tr>
+            <tr><td><strong>Email</strong></td><td>{{ aprendiz.email }}</td></tr>
+            <tr><td><strong>Teléfono</strong></td><td>{{ aprendiz.telefono|default:"—" }}</td></tr>
+            <tr><td><strong>Ficha</strong></td><td>{{ aprendiz.ficha|default:"—" }}</td></tr>
+            <tr><td><strong>GAES</strong></td><td>{{ aprendiz.gaes|default:"—" }}</td></tr>
+            <tr><td><strong>Fase</strong></td><td>{{ aprendiz.fase|default:"—" }}</td></tr>
+            <tr><td><strong>Programa</strong></td><td>{{ aprendiz.programa|default:"—" }}</td></tr>
+            <tr><td><strong>Trimestre</strong></td><td>{{ aprendiz.trimestre|default:"—" }}</td></tr>
+            <tr><td><strong>Fecha de nacimiento</strong></td><td>{{ aprendiz.fecha_nacimiento|date:"d/m/Y"|default:"—" }}</td></tr>
+            <tr><td><strong>Dirección</strong></td><td>{{ aprendiz.direccion|default:"—" }}</td></tr>
+        </table>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

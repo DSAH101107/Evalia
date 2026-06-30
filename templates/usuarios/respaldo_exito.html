@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Respaldo listo{% endblock %}
+
+{% block content %}
+<div class="page-layout">
+    <div class="page-header">
+        <h1>✅ Respaldo generado</h1>
+    </div>
+
+    <div class="card" style="background: #f0fdf4; border: 2px solid #86efac; max-width: 600px; margin: 2rem auto;">
+        <h3 style="color: #166534;">El respaldo se está descargando automáticamente</h3>
+        <p style="color: #22543d; margin: 1rem 0;">
+            El archivo PDF con la información del usuario se descargó en segundo plano.
+            Será redirigido a la lista de usuarios en un momento.
+        </p>
+
+        <div style="margin: 1.5rem 0;">
+            <iframe src="{% url 'respaldo_descargar' %}" style="display:none;" title="Descargar respaldo"></iframe>
+        </div>
+
+        <div class="form-actions" style="margin-top: 1.5rem;">
+            <a href="{% url 'lista_usuarios_por_grupos' %}" class="btn btn-primary">Ir a lista de usuarios</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    setTimeout(function() {
+        window.location.href = "{% url 'lista_usuarios_por_grupos' %}";
+    }, 2500);
+</script>
+{% endblock %}

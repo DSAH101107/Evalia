@@ -6,6 +6,7 @@ from . import views_instructor_tables
 urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
+    path('perfil/', views.perfil_usuario, name='perfil_usuario'),
     path('dashboard/admin/', views.dashboard_admin, name='dashboard_admin'),
     path('admin/ficha-resultados/', views.admin_ficha_resultados, name='admin_ficha_resultados'),
     path('admin/ficha/<int:ficha_id>/gaes/', views.admin_ficha_gaes, name='admin_ficha_gaes'),
@@ -20,6 +21,9 @@ urlpatterns = [
     path('usuarios/crear/', views.crear_usuario, name='crear_usuario'),
     path('usuarios/editar/<int:usuario_id>/', views.editar_usuario, name='editar_usuario'),
     path('usuarios/eliminar/<int:usuario_id>/', views.eliminar_usuario, name='eliminar_usuario'),
+    path('usuarios/eliminar-confirmar/<int:usuario_id>/', views.eliminar_usuario_confirmar, name='eliminar_usuario_confirmar'),
+    path('usuarios/respaldo-exito/', views.respaldo_exito, name='respaldo_exito'),
+    path('usuarios/respaldo-descargar/', views.respaldo_descargar, name='respaldo_descargar'),
     path('instructores/', views.lista_instructores, name='lista_instructores'),
     path('instructores/<int:instructor_id>/invitacion/', views.enviar_invitacion_email, name='enviar_invitacion_email'),
     path('fichas/<int:ficha_id>/invitacion/', views.enviar_invitacion_ficha, name='enviar_invitacion_ficha'),

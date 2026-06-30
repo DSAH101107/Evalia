@@ -207,12 +207,12 @@ def importar_excel_checklists(request):
             if request.headers.get('x-requested-with') == 'XMLHttpRequest':
                 return JsonResponse({'success': False, 'message': msg}, status=400)
             messages.error(request, msg)
-        return redirect('importar_excel_checklists_evaluacion')
+            return redirect('importar_excel_checklists_evaluacion')
 
         titulo = request.POST.get('titulo', '').strip() or 'Checklist importado'
         descripcion = request.POST.get('descripcion', '').strip() or 'Importado desde Excel'
 
-        checklist = Checklist.objects.create(titulo=titulo, descripcion=descripcion, activo=True)
+        checklist = Checklist.objects.create(titulo=titulo, descripcion=descripcion, activo=True, propietario=request.user)
 
         created_items = 0
         errores = []
